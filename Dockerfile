@@ -15,8 +15,8 @@ RUN /bin/bash -c "apt-get update && apt-get install -y --allow-unauthenticated \
                 rm  -rf /tmp/Miniconda3-latest-Linux-x86_64.sh && \
 
                 # install package for meteorologist
-                #conda create -y -n py_meteo && \
-                #source activate py_meteo && \
+                # conda create -y -n py_meteo && \
+                # source activate py_meteo && \
                 conda install -y -c conda-forge iris && \
                 conda install -y -c conda-forge cdo && \
                 conda install -y -c conda-forge nco && \
@@ -30,5 +30,5 @@ RUN /bin/bash -c "apt-get update && apt-get install -y --allow-unauthenticated \
                 apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* "
 
 # use /io to mount host file system later
-RUN mkdir /io
-WORKDIR /io
+# RUN mkdir /root
+WORKDIR /root
