@@ -20,6 +20,9 @@ install:
   - make dev-install
   - pip install codecov
 
+before_script:
+    - apt install libnetcdf-dev python3-netcdf4 cdo python3-cdo
+
 script:
   - echo $PATH
   - which cdo
