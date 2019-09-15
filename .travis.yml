@@ -21,6 +21,8 @@ install:
   - pip install codecov
 
 script:
+  - echo $PATH
+  - which cdo
   - make test
 
 after_success: codecov
