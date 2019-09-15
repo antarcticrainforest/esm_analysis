@@ -1,3 +1,5 @@
+[![Build Status](https://api.travis-ci.com/antarcticrainforest/esm_analysis.svg?branch=master)](https://travis-ci.com/antarcticrainforest/esm_analysis)
+[![codecov](https://codecov.io/gh/antarcticrainforest/esm_analysis/branch/master/graph/badge.svg)](https://codecov.io/gh/antarcticrainforest/esm_analysis)
 
 Python 3 tools for reading, analysing net-cdf based climate data.
 
