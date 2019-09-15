@@ -37,7 +37,7 @@ setup(name="esm_analysis",
           'distributed',
           'dill',
           'f90nml',
-          'netcdf4'
+          'netcdf4',
           'h5netcdf',
           'ipywidgets',
           'ipython',
