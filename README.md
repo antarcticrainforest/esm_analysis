@@ -1,5 +1,5 @@
 
-Python 3 tools for reading, analysing netcdf based climate data.
+Python 3 tools for reading, analysing net-cdf based climate data.
 
 
 Installing
