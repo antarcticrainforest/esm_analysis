@@ -7,7 +7,7 @@ dev-install:
 	python3 -m pip install -U -e .[test]
 
 test:
-	python3 -m pytest -v --nbval-lax --cov=karabo_data
+	python3 -m pytest -v --nbval-lax --cov=esm_analysis
 
 docker-build:
 	@# build docker image
