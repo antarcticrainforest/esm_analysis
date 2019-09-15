@@ -23,10 +23,7 @@ install:
 before_script:
     - sudo apt update
     - sudo apt install libnetcdf-dev python3-netcdf4 cdo python3-cdo
-
 script:
-  - echo $PATH
-  - which cdo
   - make test
 
 after_success: codecov
