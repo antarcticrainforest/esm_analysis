@@ -1,20 +1,90 @@
-from .calc import (calc_rh)
+import numpy as np
 
-__all__ = ['rel_humidity']
+__all__ = ['calc_rh', 'calc_sathum', 'calc_satpres']
 
-def rel_humidity(dataset, varname, tstep, **kwargs):
-    """Calculate Relative Humidity"""
-    try:
-        temp = dataset['temp'][tstep, ..., 1, :]
-        pres = dataset['pres'][tstep, ..., 1, :]
-        q = dataset['qv'][tstep, ..., 1, :]
-    except KeyError:
-        temp = dataset['ta'][tstep, ..., 1, :]
-        pres = dataset['pfull'][tstep, ..., 1, :]
-        q = dataset['hus'][tstep, ..., 1, :]
-    if kwargs.get('d1', False):
-        l = temp.shape[-1]//2
-        temp = temp[..., l]
-        pres = pres[..., l]
-        q = q[..., l]
-    return calc_rh(q, temp, pres)
+def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa', percentage=True, mixing_r=False):
+    """Calculate Realtive Humidity.
+
+    Parameters:
+    ===========
+
+    q (float, nd-array):
+        Specific humidity that is taken to calculate the relative humidity
+
+    temp (float, nd-array):
+        Temperature that is taken to calculate the relative humidity
+
+    pres (float, nd-array):
+        Pressure that is taken to calculate the relative humidity
+
+    temp_unit (str, default: K):
+        Temperature unit (C: Celsius, K: Kelvin)
+
+    pres_unit (str, default: hPa):
+        Pressure unit (hPa: ha Pascal, Pa: Pascal)
+
+    percentage (bool, default: True):
+        Return RH in percent
+
+    mixing_r (bool, default: False):
+        humidit is mixing ratio instead of specific humidity
+
+    returns: Relative Humidity
+    """
+    qs = calc_sathum(temp, pres, temp_unit=temp_unit, pres_unit=pres_unit, mixing_r=mixing_r)
+    if percentage is True:
+        return 100 * q / qs
+    else:
+        return q / qs
+
+def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
+    """Calculate Saturation Humidity.
+
+    Parameters:
+    ===========
+
+    temp (float, nd-array):
+        Temperature that is taken to calculate the sat. humidity
+
+    pres (float, nd-array):
+        Pressure that is taken to calculate the sat. humidity
+
+    temp_unit (str, default: K):
+        Temperature unit (C: Celsius, K: Kelvin)
+
+    pres_unit (str, default: hPa):
+        Pressure unit (hPa: ha Pascal, Pa: Pascal)
+
+    mixing_r (bool, default: False):
+        humidit is mixing ratio instead of specific humidity
+
+    returns: Relative Humidity
+    """
+    es = calc_satpres(temp, unit=temp_unit)
+    if pres_unit.lower().startswith('p'):
+        es *= 100
+    r_v = 0.622 * es / ( pres - es )
+    if mixing_r:
+        return r_v
+    else:
+        return r_v / (1 + r_v)
+
+def calc_satpres(temp, unit='K'):
+    """Calculate saturation presure.
+
+    Parameters:
+    ===========
+
+    temp (float, nd-array):
+        Temperature that is taken to calculate the saturation pressure
+
+    unit (str, default: K)
+        Temperature unit (C: Celsius, K: Kelvin)
+
+    returns: Saturation Pressure in hPa
+    """
+    if unit.lower().startswith('k'):
+        add = 273.15
+    else:
+        add = 0
+    return 6.112 * np.exp(( 17.62 * ( temp-add ) )/ ( (temp-add) + 243.12))
