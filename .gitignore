@@ -1,0 +1,13 @@
+*.pyc
+*.swp
+*.egg-info
+*.nc
+.cache
+.coverage
+matplotlibrc
+data
+/.pytest_cache
+/build/
+/dist/
+/docs/_build/
+.ipynb_checkpoints/
