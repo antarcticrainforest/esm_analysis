@@ -14,7 +14,7 @@ matrix:
 env:
   global:
     - MPLBACKEND=agg
-    - PATH=/root/miniconda3/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 install:
   - make dev-install
