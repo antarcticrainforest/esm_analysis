@@ -6,7 +6,7 @@ RUN /bin/bash -c "apt-get update && apt-get install -y --allow-unauthenticated \
                 zip bzip2 \
                 gcc g++ gfortran \
                 build-essential && \
- 
+
                 # install miniconda
                 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/Miniconda3-latest-Linux-x86_64.sh && \
                 rm -rf /root/miniconda3 && \

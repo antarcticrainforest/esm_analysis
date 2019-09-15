@@ -254,8 +254,7 @@ class RunDirectory:
                  model_type='ECHAM',
                  overwrite=False,
                  name_list=None,
-                 weightfile=None,
-                 ):
+                 weightfile=None):
         '''Init class '''
 
         self.exp_name = exp_name
