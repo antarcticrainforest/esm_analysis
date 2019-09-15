@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 
 # Install script dependance avaible on apt source
-RUN apt-get update && apt-get install -y --allow-unauthenticated \
+RUN apt update && apt install -y --allow-unauthenticated \
                 wget vim \
                 zip bzip2 \
                 gcc g++ gfortran \

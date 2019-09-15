@@ -21,6 +21,7 @@ install:
   - pip install codecov
 
 before_script:
+    - sudo apt updata
     - sudo apt install libnetcdf-dev python3-netcdf4 cdo python3-cdo
 
 script:
