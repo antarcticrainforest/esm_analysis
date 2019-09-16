@@ -1,5 +1,4 @@
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import datetime
 from glob import glob
 import inspect
@@ -316,15 +315,9 @@ class RunDirectory:
        else:
            progress_func = tqdm.tqdm_notebook
 
-       if backend.lower() == 'dask':
-            with dask.config.set(get=self.dask_client.get):
-                futures = [self.dask_client.submit(mappable, *task) for task in tasks]
-                progress(futures)
-       else:
-           with ProcessPoolExecutor(max_workers=n_workers) as pool:
-               futures = [pool.submit(mappable, *task) for task in tasks]
-               bar_kwargs['total'] = len(futures)
-               _= [progress_func(as_completed(futures), **bar_kwargs)]
+       with dask.config.set(get=self.dask_client.get):
+            futures = [self.dask_client.submit(mappable, *task) for task in tasks]
+            progress(futures)
        status = 0
        output = []
        for future in futures:
@@ -351,7 +344,6 @@ class RunDirectory:
               out_dir=None,
               files=None,
               method='weighted',
-              backend='dask',
               bar_kwargs={}):
         """Regrid to a different input grid.
 
@@ -375,9 +367,6 @@ class RunDirectory:
                  weighted (default), bil, con, laf. Not if weighted is chosen
                  this class should have been instanciated either with a given
                  weightfile or using the gen_weights methods.
-        backend : str (default: dask - futures, dask)
-                The the backend that should be used to execute parallel
-                processes (currently are concurrent.futures and dask implemented)
         bar_kwargs : dict
                      dict controlling the progress bar parameter
 
@@ -405,8 +394,7 @@ class RunDirectory:
         grid_files = self.apply_function(self._remap, files,
                                          args=args,
                                          n_workers=n_workers,
-                                         bar_title='Remapping',
-                                         backend=backend)
+                                         bar_title='Remapping')
 
         if isinstance(grid_files, int):
            return grid_files

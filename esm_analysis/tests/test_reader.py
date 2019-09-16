@@ -41,7 +41,7 @@ def test_is_remapped(mock_run):
 
 def test_remap(mock_run, mockgrid, mockrun_time):
     mock_run.load_data()
-    mock_run.remap(mockgrid, backend='futures' )
+    mock_run.remap(mockgrid)
     assert mock_run.is_remapped == True
     # Loading the a second time without the overwrite kwargs should have no effect
     mock_run.load_data()
