@@ -421,7 +421,7 @@ class RunDirectory:
         """
         n_workers = n_workers or mp.cpu_count()
         out_dir = out_dir or Path(self.run_dir) / 'remap_grid'
-        os.makedirs(out_dir, exist_ok=True)
+        Path(out_dir).absolute().mkdir(exist_ok=True)
         impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf')
         if method not in impl_methods:
            raise NotImplementedError('Method not available. Currently implemented'

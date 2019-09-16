@@ -33,14 +33,17 @@ def test_gen_weights(mockrun_var, mockgrid, mockweights):
 def test_is_remapped(mock_run):
     assert mock_run.is_remapped == False
 
-#def test_remap(mock_run, mockgrid, mockrun_time):
-#    mock_run.remap(mockgrid)
-#    assert (mock_run.dataset['lon'].shape[0], mock_run.dataset['lat'].shape[0]) == (64, 4)
-#    assert mock_run.run_dir == str(Path(mockrun_time) / 'remap_grid')
-
-def test_dataset(mock_run):
+def test_remap(mock_run, mockgrid, mockrun_time):
+    mock_run.remap(mockgrid)
+    assert mock_run.is_remapped == True
     assert mock_run.dataset == {}
     mock_run.load_data()
+    assert mock_run.dataset['t_2m'].shape == (240, 512)
+
+def test_dataset(mock_run, mockrun_time):
+    mock_run.load_data(overwrite=True)
+    assert (mock_run.dataset['lon'].shape[0], mock_run.dataset['lat'].shape[0]) == (64, 4)
+    assert mock_run.run_dir == str(Path(mockrun_time) / 'remap_grid')
     assert len(mock_run.dataset.keys()) ==   1 + 1 #1 variables  + time
 
 def test_apply_function(mock_run):

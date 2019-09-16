@@ -46,27 +46,27 @@ def mockweights():
 def mock_run(mockgrid, mockrun_time, mockweights):
     from esm_analysis import RunDirectory
     run = RunDirectory.gen_weights(mockgrid, mockrun_time, 'test', model_type='DWD',
-            infile=mockweights, overwrite=True)
+            infile=mockweights)
     yield run
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def spec_hum():
     yield 7.8526e-3
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def mixing_r():
     yield 7.9148e-3
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def temp_c():
     yield 25.
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def rh():
     yield 40
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def pres():
     yield 1013.25
