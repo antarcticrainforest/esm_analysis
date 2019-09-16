@@ -12,7 +12,7 @@ def mockrun_time():
     dates = pd.date_range(datetime.date.today(), periods=10, freq='1D')
     with TemporaryDirectory() as td:
         for d in dates:
-            fname = f'test_{d.strftime("%Y%m%d")}Z.nc'
+            fname = 'test_{}Z.nc'.format(d.strftime("%Y%m%d"))
             write_file(Path(td) / fname, ('t_2m', 'pres_sfc'), 24, firststep=d, dt='1H')
         yield td
 
@@ -22,7 +22,7 @@ def mockrun_var():
     vars = ('t_2m', 'pres_sfc', 'rain_gsp_rate')
     with TemporaryDirectory() as td:
         for v in vars:
-            fname = f'test_{v}_{today.strftime("%Y%m%d")}Z.nc'
+            fname = 'test_{}_{}Z.nc'.format(v, today.strftime("%Y%m%d"))
             write_file(Path(td) / fname, (v, ), 144, firststep=today, dt='10min')
         yield td
 

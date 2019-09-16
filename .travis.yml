@@ -14,11 +14,16 @@ matrix:
 env:
   global:
     - MPLBACKEND=agg
+    - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 install:
   - make dev-install
   - pip install codecov
+  - pip install dask distributed --upgrade
 
+before_script:
+    - sudo apt update
+    - sudo apt install libnetcdf-dev python3-netcdf4 cdo python3-cdo
 script:
   - make test
 

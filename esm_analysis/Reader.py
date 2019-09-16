@@ -254,8 +254,7 @@ class RunDirectory:
                  model_type='ECHAM',
                  overwrite=False,
                  name_list=None,
-                 weightfile=None,
-                 ):
+                 weightfile=None):
         '''Init class '''
 
         self.exp_name = exp_name
@@ -278,7 +277,7 @@ class RunDirectory:
             self.name_list['picklefile'] = None
             self._dump_json()
         else:
-            with open(info_file, 'r') as f:
+            with open(str(info_file), 'r') as f:
                 self.name_list = json.load(f)
         # Sanity check
         if self.name_list['remap']:
@@ -457,7 +456,7 @@ class RunDirectory:
         info_file = run_dir / '.run_info.json'
         name_list = self.name_list
         name_list['run_dir'] = str(run_dir)
-        with open(info_file, 'w') as f:
+        with open(str(info_file), 'w') as f:
             json.dump(name_list, f, sort_keys=True, indent=4)
 
     @classmethod
@@ -540,7 +539,7 @@ class RunDirectory:
        if overwrite or self.name_list['picklefile'] is None:
           self._load_data(filenames, kwargs)
        try:
-          with open(self.name_list['picklefile'], 'rb') as f:
+          with open(str(self.name_list['picklefile']), 'rb') as f:
              self._dataset = pickle.load(f, fix_imports=False)
        except :
           self._load_data(filenames, kwargs)

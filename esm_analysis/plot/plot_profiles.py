@@ -10,7 +10,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid, AxesGrid
 import numpy as np
 import seaborn as sns
 
-from .setup import (BuildWidget, _check, _read_data)
+from .setup_plot import (BuildWidget, _check, _read_data)
 
 CBAR_ARGS = {
             'cbar_mode': 'single',

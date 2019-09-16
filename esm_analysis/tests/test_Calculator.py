@@ -4,7 +4,7 @@ import pytest
 
 def test_calc_rh(rh, spec_hum, mixing_r, temp_c, pres):
 
-    from esm_analysis.calc import calc_rh
+    from esm_analysis import calc_rh
     rel_hum = calc_rh(spec_hum, temp_c+273.15, pres, percentage=False)
     assert np.allclose(rel_hum, rh/100., rtol=1e-04) == True
 
@@ -16,7 +16,7 @@ def test_calc_rh(rh, spec_hum, mixing_r, temp_c, pres):
 
 def test_pres(temp_c):
 
-    from esm_analysis.calc import calc_satpres
+    from esm_analysis import calc_satpres
     es = calc_satpres(temp_c, unit='C')
     assert np.allclose(es, 31.6, rtol=1e-03)
 
@@ -25,7 +25,7 @@ def test_pres(temp_c):
 
 def test_sathum(rh, spec_hum, temp_c, pres):
 
-    from esm_analysis.calc import calc_sathum
+    from esm_analysis import calc_sathum
 
     qs = 100 * spec_hum / rh
 
