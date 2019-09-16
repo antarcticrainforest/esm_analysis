@@ -19,6 +19,7 @@ env:
 install:
   - make dev-install
   - pip install codecov
+  - pip install dask distributed --upgrade
 
 before_script:
     - sudo apt update
