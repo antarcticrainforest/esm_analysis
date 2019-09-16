@@ -70,3 +70,31 @@ def rh():
 @pytest.fixture
 def pres():
     yield 1013.25
+
+def model_config(config=None):
+    conf = '''
+    title = "This could ba a descriptive title."
+
+    {}
+    '''.format(config or '')
+    print(conf)
+    return conf
+
+@pytest.fixture
+def model_setup_with_config():
+    conf_str = '''
+    [config]
+        mpt01 = "Some fancy model setup"
+        mpt02 = "An even fancier model setup"
+    '''
+    with NamedTemporaryFile() as tf:
+        with open(tf.name, 'w') as f:
+            f.write(model_config(conf_str))
+        yield tf.name
+
+@pytest.fixture
+def model_setup_without_config():
+    with NamedTemporaryFile() as tf:
+        with open(tf.name, 'w') as f:
+            f.write(model_config())
+        yield tf.name
