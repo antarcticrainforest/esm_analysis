@@ -17,7 +17,7 @@ def test_write_file():
     dates = pd.date_range(datetime.date.today(), periods=10, freq='1D')
     with TemporaryDirectory() as td:
         for d in dates:
-            fname = f'test_{d.strftime("%Y%m%d")}Z.nc'
+            fname = 'test_{}Z.nc'.format(d.strftime("%Y%m%d"))
             write_file(Path(td) / fname, ('t_2m', 'pres_sfc'), 24, firststep=d, dt='1H')
 
         ncfiles = [File(str(p)) for p in Path(td).rglob('*.nc')]
