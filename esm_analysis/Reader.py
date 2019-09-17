@@ -19,7 +19,6 @@ from dask.distributed import (Client, progress, utils)
 import f90nml
 import numpy as np
 import pandas as pd
-import tqdm
 import toml
 from xarray import open_mfdataset
 
@@ -304,11 +303,6 @@ class RunDirectory:
        bar_kwargs.setdefault('leave', True)
        bar_kwargs.setdefault('desc', '{}: '.format(bar_title))
        n_workers  = min(n_workers, len(tasks))
-       if utils.is_kernel(): # Doesn't work always but alwasy more often
-           progress_func = tqdm.tqdm_notebook
-       else:
-           progress_func = tqdm.tqdm
-
        with dask.config.set(get=self.dask_client.get):
             futures = [self.dask_client.submit(mappable, *task) for task in tasks]
             progress(futures)
