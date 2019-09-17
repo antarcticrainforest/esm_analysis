@@ -21,7 +21,7 @@ install:
   #  Useful for debugging any issues with conda
   - conda info -a
   # Install cdo libnetcdf netcdf4 and such things
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION libnetcdf cdo dask distributed xarray pytest
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION libnetcdf cdo dask hdf5 distributed xarray pytest
   - conda activate test-environment
   - pip install codecov
   - make dev-install
