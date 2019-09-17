@@ -7,7 +7,6 @@ import multiprocessing as mp
 import os
 import os.path as op
 from pathlib import Path
-import pickle
 import re
 import sys
 from tempfile import NamedTemporaryFile
@@ -17,7 +16,6 @@ from cdo import Cdo
 import cloudpickle
 import dask
 from dask.distributed import (Client, progress, utils)
-import dill
 import f90nml
 import numpy as np
 import pandas as pd
@@ -238,12 +236,8 @@ class RunDirectory:
           pat = re.compile('^(?!.*restart).*[nN][cC]')
        else:
           pat = re.compile('^(?!.*restart|.*remap).*[nN][cC]')
-       glob_pad = '*Z.[nN][cC]'
+       glob_pad = '*.[nN][cC]'
        result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad) \
-                             if re.match(pat, f.as_posix())])
-       if len(result) == 0:
-          glob_pad = '*.[nN][cC]'
-          result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad) \
                              if re.match(pat, f.as_posix())])
        return result
 
@@ -311,9 +305,9 @@ class RunDirectory:
        bar_kwargs.setdefault('desc', '{}: '.format(bar_title))
        n_workers  = min(n_workers, len(tasks))
        if utils.is_kernel(): # Doesn't work always but alwasy more often
-           progress_func = tqdm.tqdm
-       else:
            progress_func = tqdm.tqdm_notebook
+       else:
+           progress_func = tqdm.tqdm
 
        with dask.config.set(get=self.dask_client.get):
             futures = [self.dask_client.submit(mappable, *task) for task in tasks]
@@ -494,7 +488,7 @@ class RunDirectory:
           self._load_data(filenames, kwargs)
        try:
           with open(str(self.name_list['picklefile']), 'rb') as f:
-             self._dataset = pickle.load(f, fix_imports=False)
+             self._dataset = cloudpickle.load(f)
        except :
           self._load_data(filenames, kwargs)
 
@@ -526,7 +520,7 @@ class RunDirectory:
        with NamedTemporaryFile(dir=self.run_dir,
                                suffix='.pkl',
                                prefix='.', delete=False) as tmpfile:
-              pickle.dump(self.dataset, tmpfile, protocol=4, fix_imports=False)
+              cloudpickle.dump(self.dataset, tmpfile, protocol=4)
               self.name_list['picklefile'] = tmpfile.name
        self._dump_json()
 
