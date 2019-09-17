@@ -8,6 +8,7 @@ env:
   global:
     - MPLBACKEND=agg
     - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - HDF5_DISABLE_VERSION_CHECK=10
 
 install:
   - sudo apt-get update
