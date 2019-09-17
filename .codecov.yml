@@ -1,0 +1,6 @@
+comment: off
+codecov:
+    token:  44e53169-ac5b-408e-8e46-adb6a816dcc7
+ignore:
+    - "*/test/*"
+    - "*/plot/*"

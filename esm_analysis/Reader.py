@@ -1,5 +1,4 @@
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import datetime
 from glob import glob
 import inspect
@@ -17,8 +16,7 @@ import warnings
 from cdo import Cdo
 import cloudpickle
 import dask
-from dask.distributed import Client
-from dask.callbacks import Callback
+from dask.distributed import (Client, progress, utils)
 import dill
 import f90nml
 import numpy as np
@@ -26,19 +24,6 @@ import pandas as pd
 import tqdm
 import toml
 from xarray import open_mfdataset
-
-dask_client = Client()
-
-class ProgressBar(Callback):
-
-    def _start_state(self, dsk, state):
-        self._tqdm = tqdm_notebook(total=sum(len(state[k]) for k in ['ready', 'waiting', 'running', 'finished']))
-
-    def _posttask(self, key, result, dsk, state, worker_id):
-        self._tqdm.update(1)
-
-    def _finish(self, dsk, state, errored):
-        pass
 
 class _BaseVariables(dict):
    """Base Class to define Variable Name."""
@@ -134,7 +119,7 @@ def lookup(setup):
       raise KeyError('Model output type not found')
    return LookupObj()
 
-__all__ = ['RunDirectory', 'lookup', 'Info', 'Config', 'cdo', 'icon2datetime']
+__all__ = ['RunDirectory', 'lookup', 'Config', 'cdo', 'icon2datetime']
 
 
 def icon2datetime(icon_dates, start=None):
@@ -162,7 +147,7 @@ def icon2datetime(icon_dates, start=None):
             conv = convert
     except (AttributeError, IndexError):
         conv = convert
-    return conv(icon_dates) 
+    return conv(icon_dates)
 
 
 class Config:
@@ -195,58 +180,18 @@ class Config:
    def content(self):
       return self._config
 
-class Info(dict):
-    def __init__(self, dset, min_max=False):
-        self._info = {}
-        out = {'Name':[], 'Unit':[], 'Min':[], 'Max':[]}
-        for name in dset.variables:
-            if min_max:
-                ma = dset[name].values.max(), dset[name].values.min()
-            else:
-                ma = [None, None]
-            try:
-                self._info[name] = (dset[name].long_name, dset[name].units, *ma)
-            except AttributeError:
-                self._info[name] = (name, name, *ma)
-            self[name] = self._info[name]
-            self.name = self._info[name]
-            out['Name'].append(self._info[name][0])
-            out['Unit'].append(self._info[name][1])
-            out['Min'].append(ma[0])
-            out['Max'].append(ma[-1])
-            #out['Variable'].append(name)
-        self._df = pd.DataFrame(out, index=list(self._info.keys()))
-
-    @property
-    def table(self):
-        return self._df
-
-    @property
-    def names(self):
-        out = {}
-        for key, values in self._info.items():
-            out[key] = values[0], values[1]
-        return out
-    @property
-    def values(self):
-        out = {}
-        for key, values in self._info.items():
-            out[key] = 'min: {}, max: {}'.format(values[-2], values[-1])
-        return out
-    def __repr__(self):
-        a = self._df.__repr__()
-        return a
-
-    def _repr_html_(self):
-        a = self._df.style
-        return a._repr_html_()
-
 
 class RunDirectory:
 
     weightfile = None
     griddes = None
     _open_file = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def __init__(self,
                  run_dir,
@@ -268,7 +213,6 @@ class RunDirectory:
             except FileNotFoundError:
               self.name_list = {}
 
-            
             self.name_list['output'] = self._get_files(run_dir)
             self.name_list['weightfile'] = self.weightfile
             self.name_list['gridfile'] = self.griddes
@@ -285,6 +229,7 @@ class RunDirectory:
            self.name_list['run_dir'] = run_dir
            self._dump_json()
         self._dataset = {}
+        self.dask_client = Client()
 
     @staticmethod
     def _get_files(run_dir, remap=False):
@@ -303,7 +248,7 @@ class RunDirectory:
        return result
 
     @staticmethod
-    def _remap(infile, out_dir, griddes, weightfile, method):
+    def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None):
         out_file = op.join(out_dir, op.basename(infile))
         if method == 'weighted':
            try:
@@ -324,13 +269,13 @@ class RunDirectory:
     def files(self):
         return pd.Series(self.name_list['output'])
 
-    @staticmethod
-    def apply_function(mappable,
+    def apply_function(self,
+                       mappable,
                        collection, *,
                        args=None,
                        n_workers=None,
                        bar_title=None,
-                       client='futures',
+                       backend='dask',
                        bar_kwargs={}):
        """Apply function to given collection.
 
@@ -365,15 +310,14 @@ class RunDirectory:
        bar_kwargs.setdefault('leave', True)
        bar_kwargs.setdefault('desc', '{}: '.format(bar_title))
        n_workers  = min(n_workers, len(tasks))
-       if client == 'futures':
-           with ProcessPoolExecutor(max_workers=n_workers) as pool:
-               futures = [pool.submit(mappable, *task) for task in tasks]
-               bar_kwargs['total'] = len(futures)
-               for f in tqdm.tqdm_notebook(as_completed(futures), **bar_kwargs):
-                   pass
+       if utils.is_kernel(): # Doesn't work always but alwasy more often
+           progress_func = tqdm.tqdm
        else:
-           with dask.config.set(get=dask_client.get):
-               futures = [dask_client.submit(mappable, *task) for task in tasks]
+           progress_func = tqdm.tqdm_notebook
+
+       with dask.config.set(get=self.dask_client.get):
+            futures = [self.dask_client.submit(mappable, *task) for task in tasks]
+            progress(futures)
        status = 0
        output = []
        for future in futures:
@@ -385,6 +329,14 @@ class RunDirectory:
        if status != 0:
            output = 257
        return output
+
+    def close(self):
+       """Close the opened dask client."""
+       try:
+           self.dask_client.close()
+       except AttributeError:
+           pass
+
 
     def remap(self,
               grid_description, *,
@@ -415,13 +367,13 @@ class RunDirectory:
                  weighted (default), bil, con, laf. Not if weighted is chosen
                  this class should have been instanciated either with a given
                  weightfile or using the gen_weights methods.
-
         bar_kwargs : dict
                      dict controlling the progress bar parameter
+
         """
         n_workers = n_workers or mp.cpu_count()
         out_dir = out_dir or Path(self.run_dir) / 'remap_grid'
-        os.makedirs(out_dir, exist_ok=True)
+        Path(out_dir).absolute().mkdir(exist_ok=True)
         impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf')
         if method not in impl_methods:
            raise NotImplementedError('Method not available. Currently implemented'
@@ -439,8 +391,10 @@ class RunDirectory:
         elif isinstance(files, (str, Path)):
            files = sorted([f.as_posix() for f in Path(run_dir).rglob(files)])
 
-        grid_files = self.apply_function(self._remap, files, args=args,
-                                     n_workers=n_workers, bar_title='Remapping')
+        grid_files = self.apply_function(self._remap, files,
+                                         args=args,
+                                         n_workers=n_workers,
+                                         bar_title='Remapping')
 
         if isinstance(grid_files, int):
            return grid_files
@@ -561,7 +515,7 @@ class RunDirectory:
 
         kwargs.setdefault('parallel',  True)
         kwargs.setdefault('combine', 'by_coords')
-        with dask.config.set(get=dask_client.get):
+        with dask.config.set(get=self.dask_client.get):
             self._dataset = open_mfdataset(read_files, **kwargs)
 
         self._pickle_dataset()

@@ -46,27 +46,55 @@ def mockweights():
 def mock_run(mockgrid, mockrun_time, mockweights):
     from esm_analysis import RunDirectory
     run = RunDirectory.gen_weights(mockgrid, mockrun_time, 'test', model_type='DWD',
-            infile=mockweights, overwrite=True)
+            infile=mockweights)
     yield run
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def spec_hum():
     yield 7.8526e-3
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def mixing_r():
     yield 7.9148e-3
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def temp_c():
     yield 25.
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def rh():
     yield 40
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 def pres():
     yield 1013.25
+
+def model_config(config=None):
+    conf = '''
+    title = "This could ba a descriptive title."
+
+    {}
+    '''.format(config or '')
+    print(conf)
+    return conf
+
+@pytest.fixture
+def model_setup_with_config():
+    conf_str = '''
+    [config]
+        mpt01 = "Some fancy model setup"
+        mpt02 = "An even fancier model setup"
+    '''
+    with NamedTemporaryFile() as tf:
+        with open(tf.name, 'w') as f:
+            f.write(model_config(conf_str))
+        yield tf.name
+
+@pytest.fixture
+def model_setup_without_config():
+    with NamedTemporaryFile() as tf:
+        with open(tf.name, 'w') as f:
+            f.write(model_config())
+        yield tf.name

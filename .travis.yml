@@ -2,28 +2,32 @@ language: python
 python:
   - 3.6
   - 3.5
-
-# Python 3.7 currently (early 2019) needs a newer Ubuntu version than the
-# default image on Travis.
-matrix:
-  include:
-    - python: 3.7
-      dist: xenial
-      sudo: true
+  - 3.7
 
 env:
   global:
     - MPLBACKEND=agg
     - PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - HDF5_DISABLE_VERSION_CHECK=10
 
 install:
-  - make dev-install
+  - sudo apt-get update
+  - sudo apt-get install libhdf5-dev libnetcdf-dev
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - source "$HOME/miniconda/etc/profile.d/conda.sh"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda config --add channels conda-forge
+  - conda update -q conda
+  #  Useful for debugging any issues with conda
+  - conda info -a
+  # Install cdo libnetcdf netcdf4 and such things
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION libnetcdf cdo dask hdf5 distributed xarray pytest
+  - conda activate test-environment
   - pip install codecov
-  - pip install dask distributed --upgrade
+  - make dev-install
 
-before_script:
-    - sudo apt update
-    - sudo apt install libnetcdf-dev python3-netcdf4 cdo python3-cdo
 script:
   - make test
 
