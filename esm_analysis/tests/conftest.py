@@ -7,7 +7,7 @@ import pytest
 from .mockdata import (create_grid, get_weights, write_file)
 
 @pytest.fixture(scope='session')
-def mockrun_time():
+def mock_timedir():
     import pandas as pd
     dates = pd.date_range(datetime.date.today(), periods=10, freq='1D')
     with TemporaryDirectory() as td:
@@ -17,7 +17,7 @@ def mockrun_time():
         yield td
 
 @pytest.fixture(scope='module')
-def mockrun_var():
+def mock_vardir():
     today = datetime.date.today()
     vars = ('t_2m', 'pres_sfc', 'rain_gsp_rate')
     with TemporaryDirectory() as td:
@@ -30,7 +30,6 @@ def mockrun_var():
 @pytest.fixture(scope='session')
 def mockgrid():
     """Create a mock grid file for regrdding."""
- 
     with NamedTemporaryFile() as tf:
         create_grid(tf.name)
         yield tf.name
@@ -43,11 +42,17 @@ def mockweights():
         yield tf.name
 
 @pytest.fixture(scope='session')
-def mock_run(mockgrid, mockrun_time, mockweights):
+def mock_run(mockgrid, mock_timedir, mockweights):
     from esm_analysis import RunDirectory
-    run = RunDirectory.gen_weights(mockgrid, mockrun_time, 'test', model_type='DWD',
+    run = RunDirectory.gen_weights(mockgrid, mock_timedir, 'test', model_type='DWD',
             infile=mockweights)
     yield run
+
+@pytest.fixture(scope='session')
+def mock_tmpdir():
+    with TemporaryDirectory() as td:
+        yield td
+
 
 @pytest.fixture
 def spec_hum():

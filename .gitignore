@@ -4,6 +4,7 @@
 *.nc
 .cache
 .coverage
+coverage.xml
 matplotlibrc
 data
 /.pytest_cache

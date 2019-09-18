@@ -7,7 +7,6 @@ import multiprocessing as mp
 import os
 import os.path as op
 from pathlib import Path
-import pickle
 import re
 import sys
 from tempfile import NamedTemporaryFile
@@ -17,11 +16,9 @@ from cdo import Cdo
 import cloudpickle
 import dask
 from dask.distributed import (Client, progress, utils)
-import dill
 import f90nml
 import numpy as np
 import pandas as pd
-import tqdm
 import toml
 from xarray import open_mfdataset
 
@@ -140,13 +137,7 @@ def icon2datetime(icon_dates, start=None):
         frac_day *= 60**2 * 24
         return datetime.datetime.strptime(str(int(date)), '%Y%m%d')\
                 + datetime.timedelta(seconds=int(frac_day.round(0)))
-    try:
-        if icon_dates.shape[0] >= 1:
-            conv = np.vectorize(convert)
-        else:
-            conv = convert
-    except (AttributeError, IndexError):
-        conv = convert
+    conv = np.vectorize(convert)
     return conv(icon_dates)
 
 
@@ -204,7 +195,7 @@ class RunDirectory:
 
         self.exp_name = exp_name
         self.variables = lookup(model_type)
-        info_file = op.join(run_dir, '.run_info.json')
+        info_file = op.join(str(run_dir), '.run_info.json')
         nml_file = name_list or 'NAMELIST_{}_atm'.format(exp_name)
         self.weightfile = weightfile or self.weightfile
         if overwrite or not op.isfile(info_file):
@@ -238,12 +229,8 @@ class RunDirectory:
           pat = re.compile('^(?!.*restart).*[nN][cC]')
        else:
           pat = re.compile('^(?!.*restart|.*remap).*[nN][cC]')
-       glob_pad = '*Z.[nN][cC]'
+       glob_pad = '*.[nN][cC]'
        result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad) \
-                             if re.match(pat, f.as_posix())])
-       if len(result) == 0:
-          glob_pad = '*.[nN][cC]'
-          result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad) \
                              if re.match(pat, f.as_posix())])
        return result
 
@@ -255,11 +242,11 @@ class RunDirectory:
                cdo_str = str(griddes)+','+str(weightfile)
            except TypeError:
                cdo_str = griddes
-           return cdo.remap('{} {}'.format(cdo_str, infile),
-                                           output=out_file)
+           return cdo.remap('{} {}'.format(cdo_str, str(infile)),
+                                           output=str(out_file))
         else:
            remap_func = getattr(cdo, method)
-           return remap_func('{} {}'.format(griddes, strinfile), output=out_file)
+           return remap_func('{} {}'.format(griddes, str(infile)), output=str(out_file))
 
     @property
     def run_dir(self):
@@ -310,11 +297,6 @@ class RunDirectory:
        bar_kwargs.setdefault('leave', True)
        bar_kwargs.setdefault('desc', '{}: '.format(bar_title))
        n_workers  = min(n_workers, len(tasks))
-       if utils.is_kernel(): # Doesn't work always but alwasy more often
-           progress_func = tqdm.tqdm
-       else:
-           progress_func = tqdm.tqdm_notebook
-
        with dask.config.set(get=self.dask_client.get):
             futures = [self.dask_client.submit(mappable, *task) for task in tasks]
             progress(futures)
@@ -344,7 +326,8 @@ class RunDirectory:
               out_dir=None,
               files=None,
               method='weighted',
-              bar_kwargs={}):
+              weightfile=None
+              ):
         """Regrid to a different input grid.
 
         Parameters:
@@ -367,24 +350,26 @@ class RunDirectory:
                  weighted (default), bil, con, laf. Not if weighted is chosen
                  this class should have been instanciated either with a given
                  weightfile or using the gen_weights methods.
-        bar_kwargs : dict
-                     dict controlling the progress bar parameter
+        weightfile : str (default : None)
+                     File containing the weights for the distance weighted
+                     remapping.
 
         """
         n_workers = n_workers or mp.cpu_count()
         out_dir = out_dir or Path(self.run_dir) / 'remap_grid'
         Path(out_dir).absolute().mkdir(exist_ok=True)
         impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf')
+        weightfile = weightfile or self.weightfile
         if method not in impl_methods:
            raise NotImplementedError('Method not available. Currently implemented'
                                      ' methods are weighted, remapbil, remapcon, reamplaf')
-        if self.weightfile is None and method == 'weighted':
+        if weightfile is None and method == 'weighted':
            raise ValueError('No weightfile was given, either choose different'
                             ' remapping method or instanciated the Reader object'
                             ' by providing a weightfile or generate a weightfile'
                             ' by calling the gen_weights methods')
 
-        args = (str(out_dir), str(grid_description), str(self.weightfile), method)
+        args = (str(out_dir), str(grid_description), str(weightfile), method)
         run_dir = self.name_list['run_dir']
         if files is None:
             files = self.files
@@ -396,18 +381,14 @@ class RunDirectory:
                                          n_workers=n_workers,
                                          bar_title='Remapping')
 
-        if isinstance(grid_files, int):
-           return grid_files
-        self.name_list['output'] = sorted(grid_files)
-        self.name_list['remap'] = True
-        self._dump_json()
-        self._dump_json(out_dir)
-
-        return 0
+        if not isinstance(grid_files, int):
+            self.name_list['output'] = sorted(grid_files)
+            self.name_list['remap'] = True
+            self._dump_json(out_dir)
 
     def _dump_json(self, run_dir=None):
         run_dir = run_dir or Path(self.run_dir)
-        info_file = run_dir / '.run_info.json'
+        info_file = Path(run_dir) / '.run_info.json'
         name_list = self.name_list
         name_list['run_dir'] = str(run_dir)
         with open(str(info_file), 'w') as f:
@@ -494,7 +475,7 @@ class RunDirectory:
           self._load_data(filenames, kwargs)
        try:
           with open(str(self.name_list['picklefile']), 'rb') as f:
-             self._dataset = pickle.load(f, fix_imports=False)
+             self._dataset = cloudpickle.load(f)
        except :
           self._load_data(filenames, kwargs)
 
@@ -526,7 +507,7 @@ class RunDirectory:
        with NamedTemporaryFile(dir=self.run_dir,
                                suffix='.pkl',
                                prefix='.', delete=False) as tmpfile:
-              pickle.dump(self.dataset, tmpfile, protocol=4, fix_imports=False)
+              cloudpickle.dump(self.dataset, tmpfile, protocol=4)
               self.name_list['picklefile'] = tmpfile.name
        self._dump_json()
 
