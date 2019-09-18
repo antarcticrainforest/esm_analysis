@@ -82,7 +82,7 @@ def test_reload(mock_tmpdir, mockgrid):
     with RunDirectory(mock_tmpdir, 'test', model_type='DWD') as run:
         assert run.run_dir == mock_tmpdir
         # reload the dataset (do not use the picklefile)
-        run.load_data('*.nc', overwrite=True)
+        run.load_data(['*.nc'], overwrite=True)
         run.remap(mockgrid, method='remapcon', files=run.files[0])
         assert len(run.files) == 1
 
