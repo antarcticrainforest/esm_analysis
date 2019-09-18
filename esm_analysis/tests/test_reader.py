@@ -81,7 +81,7 @@ def test_other_remap(mock_timedir, mockgrid, mock_tmpdir):
 def test_load_reamapped(mock_tmpdir, mockgrid):
     with RunDirectory(mock_tmpdir, 'test', model_type='DWD') as run:
         assert run.run_dir == mock_tmpdir
-        run.load_data()
+        run.load_data('*.nc')
         print(run.files)
         run.remap(mockgrid, method='remapcon', files=run.files[0])
         assert len(run.files) == 1
