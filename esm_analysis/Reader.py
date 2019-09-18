@@ -137,13 +137,7 @@ def icon2datetime(icon_dates, start=None):
         frac_day *= 60**2 * 24
         return datetime.datetime.strptime(str(int(date)), '%Y%m%d')\
                 + datetime.timedelta(seconds=int(frac_day.round(0)))
-    try:
-        if icon_dates.shape[0] >= 1:
-            conv = np.vectorize(convert)
-        else:
-            conv = convert
-    except (AttributeError, IndexError):
-        conv = convert
+    conv = np.vectorize(convert)
     return conv(icon_dates)
 
 
@@ -248,11 +242,11 @@ class RunDirectory:
                cdo_str = str(griddes)+','+str(weightfile)
            except TypeError:
                cdo_str = griddes
-           return cdo.remap('{} {}'.format(cdo_str, infile),
-                                           output=out_file)
+           return cdo.remap('{} {}'.format(cdo_str, str(infile)),
+                                           output=str(out_file))
         else:
            remap_func = getattr(cdo, method)
-           return remap_func('{} {}'.format(griddes, strinfile), output=out_file)
+           return remap_func('{} {}'.format(griddes, str(infile)), output=str(out_file))
 
     @property
     def run_dir(self):
@@ -332,7 +326,8 @@ class RunDirectory:
               out_dir=None,
               files=None,
               method='weighted',
-              bar_kwargs={}):
+              weightfile=None
+              ):
         """Regrid to a different input grid.
 
         Parameters:
@@ -355,24 +350,26 @@ class RunDirectory:
                  weighted (default), bil, con, laf. Not if weighted is chosen
                  this class should have been instanciated either with a given
                  weightfile or using the gen_weights methods.
-        bar_kwargs : dict
-                     dict controlling the progress bar parameter
+        weightfile : str (default : None)
+                     File containing the weights for the distance weighted
+                     remapping.
 
         """
         n_workers = n_workers or mp.cpu_count()
         out_dir = out_dir or Path(self.run_dir) / 'remap_grid'
         Path(out_dir).absolute().mkdir(exist_ok=True)
         impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf')
+        weightfile = weightfile or self.weightfile
         if method not in impl_methods:
            raise NotImplementedError('Method not available. Currently implemented'
                                      ' methods are weighted, remapbil, remapcon, reamplaf')
-        if self.weightfile is None and method == 'weighted':
+        if weightfile is None and method == 'weighted':
            raise ValueError('No weightfile was given, either choose different'
                             ' remapping method or instanciated the Reader object'
                             ' by providing a weightfile or generate a weightfile'
                             ' by calling the gen_weights methods')
 
-        args = (str(out_dir), str(grid_description), str(self.weightfile), method)
+        args = (str(out_dir), str(grid_description), str(weightfile), method)
         run_dir = self.name_list['run_dir']
         if files is None:
             files = self.files
@@ -384,18 +381,14 @@ class RunDirectory:
                                          n_workers=n_workers,
                                          bar_title='Remapping')
 
-        if isinstance(grid_files, int):
-           return grid_files
-        self.name_list['output'] = sorted(grid_files)
-        self.name_list['remap'] = True
-        self._dump_json()
-        self._dump_json(out_dir)
-
-        return 0
+        if not isinstance(grid_files, int):
+            self.name_list['output'] = sorted(grid_files)
+            self.name_list['remap'] = True
+            self._dump_json(out_dir)
 
     def _dump_json(self, run_dir=None):
         run_dir = run_dir or Path(self.run_dir)
-        info_file = run_dir / '.run_info.json'
+        info_file = Path(run_dir) / '.run_info.json'
         name_list = self.name_list
         name_list['run_dir'] = str(run_dir)
         with open(str(info_file), 'w') as f:

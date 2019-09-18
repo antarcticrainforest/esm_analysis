@@ -7,9 +7,14 @@ from unittest import mock
 
 from esm_analysis import (Config, icon2datetime, lookup, RunDirectory)
 
+def test_load_empty_data(mock_tmpdir, mockgrid, mockweights):
+    with pytest.raises(FileNotFoundError):
+        with RunDirectory.gen_weights(mockgrid, mock_tmpdir, 'test',
+                model_type='DWD', infile=mockweights, overwrite=False):
+            pass
 
-def test_load_data(mockrun_time):
-    with RunDirectory(mockrun_time, 'test', model_type='DWD') as run:
+def test_load_data(mock_timedir):
+    with RunDirectory(mock_timedir, 'test', model_type='DWD') as run:
         # At first not data should be loaded only information gathered
         assert run.dataset == {}
         assert len(run.files) == 10
@@ -22,8 +27,8 @@ def test_load_data(mockrun_time):
         assert run.name_list['picklefile'] != None
 
 
-def test_gen_weights(mockrun_var, mockgrid, mockweights):
-    with RunDirectory.gen_weights(mockgrid, mockrun_var, 'test',
+def test_gen_weights(mock_vardir, mockgrid, mockweights):
+    with RunDirectory.gen_weights(mockgrid, mock_vardir, 'test',
             model_type='DWD', infile=mockweights, overwrite=True) as run:
         # At first not data should be loaded only information gathered
         assert run.dataset == {}
@@ -31,7 +36,7 @@ def test_gen_weights(mockrun_var, mockgrid, mockweights):
         # Test for essential keys to be pressent
         assert sorted(run.name_list.keys()) == ['gridfile', 'output', 'picklefile', 'remap', 'run_dir', 'weightfile']
         assert run.gridfile == mockgrid
-        assert run.weightfile == str(Path(mockrun_var) / 'remapweights.nc')
+        assert run.weightfile == str(Path(mock_vardir) / 'remapweights.nc')
         run.load_data('*t_2m*.nc')
         assert len(run.dataset.variables.keys()) == 2
 
@@ -39,7 +44,7 @@ def test_gen_weights(mockrun_var, mockgrid, mockweights):
 def test_is_remapped(mock_run):
     assert mock_run.is_remapped == False
 
-def test_remap(mock_run, mockgrid, mockrun_time):
+def test_weighted_remap(mock_run, mockgrid, mock_timedir):
     mock_run.load_data()
     mock_run.remap(mockgrid)
     assert mock_run.is_remapped == True
@@ -47,10 +52,35 @@ def test_remap(mock_run, mockgrid, mockrun_time):
     mock_run.load_data()
     assert mock_run.dataset['t_2m'].shape == (240, 512)
 
-def test_dataset(mock_run, mockrun_time):
+def test_other_remap(mock_timedir, mockgrid, mock_tmpdir):
+    from pathlib import Path
+    with RunDirectory(Path(mock_timedir) / 'remap_grid', 'test', model_type='DWD') as run:
+        # Try giving a list for loading the data
+        assert run.is_remapped == True
+        run.load_data(run.files)
+        run.weightfile = None
+        # Now try to remap the data into another folder
+        # First try a wrong method name
+        with pytest.raises(NotImplementedError):
+            run.remap(mockgrid, method='remapconr')
+
+        # Now try testing without a valid weightfile
+        with pytest.raises(ValueError):
+            run.remap(mockgrid)
+        # Finally try a valid remapping
+        run.remap(mockgrid, method='remapbil', out_dir=mock_tmpdir)
+        # Update of the data directory sould only be done after reloading the dataset
+        assert run.run_dir == mock_tmpdir
+
+def test_load_reamapped(mock_tmpdir):
+    with RunDirectory(mock_tmpdir, 'test', model_type='DWD') as run:
+        assert run.run_dir == mock_tmpdir
+
+
+def test_dataset(mock_run, mock_timedir):
     mock_run.load_data(overwrite=True)
     assert (mock_run.dataset['lon'].shape[0], mock_run.dataset['lat'].shape[0]) == (64, 4)
-    assert mock_run.run_dir == str(Path(mockrun_time) / 'remap_grid')
+    assert mock_run.run_dir == str(Path(mock_timedir) / 'remap_grid')
     assert len(mock_run.dataset.keys()) ==   1 + 1 #1 variables  + time
 
 def test_apply_function(mock_run):
@@ -79,15 +109,15 @@ def test_lookup():
     with pytest.raises(KeyError):
         lookup('BALBLA')
 
-def tets_icon2datetime():
+def test_icon2datetime():
 
-    timesteps = [20091027.05, 2001027.05] # 27th October 2009/2010 12 Noon
+    timesteps = [20091027.5, 20101027.5] # 27th October 2009/2010 12 Noon
     ts_conv = icon2datetime(timesteps)
-    assert (ts_conv[0].year, ts_conv[1].month, ts_conf[0].day) == (2009, 10, 27)
-    assert ts_conv[1].hour == ts_conv[0].hours == 12
+    assert (ts_conv[0].year, ts_conv[1].month, ts_conv[0].day) == (2009, 10, 27)
+    assert ts_conv[1].hour == ts_conv[0].hour == 12
 
     ts_conv_int = icon2datetime(timesteps[0])
-    assert ts_conv_int == ts_con[0]
+    assert ts_conv_int == ts_conv[0]
 
 
 def test_config(model_setup_with_config, model_setup_without_config):
