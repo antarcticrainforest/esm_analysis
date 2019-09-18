@@ -84,7 +84,7 @@ def test_reload(mock_tmpdir, mockgrid):
         # reload the dataset (do not use the picklefile)
         run.load_data('*.nc', overwrite=True)
         run.remap(mockgrid, method='remapcon', files=run.files[0])
-        assert len(run.files) == 10
+        assert len(run.files) == 1
 
 
 def test_dataset(mock_run, mock_timedir):
