@@ -195,7 +195,7 @@ class RunDirectory:
 
         self.exp_name = exp_name
         self.variables = lookup(model_type)
-        info_file = op.join(run_dir, '.run_info.json')
+        info_file = op.join(str(run_dir), '.run_info.json')
         nml_file = name_list or 'NAMELIST_{}_atm'.format(exp_name)
         self.weightfile = weightfile or self.weightfile
         if overwrite or not op.isfile(info_file):
