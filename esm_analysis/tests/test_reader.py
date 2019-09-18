@@ -67,14 +67,24 @@ def test_other_remap(mock_timedir, mockgrid, mock_tmpdir):
         # Now try testing without a valid weightfile
         with pytest.raises(ValueError):
             run.remap(mockgrid)
+        print(run.files[0])
+        # Try remapping with an invalid file
+        with pytest.raises(FileNotFoundError):
+            run.remap(mockgrid, method='remapbil', out_dir=mock_tmpdir, files='*.Z.nc')
         # Finally try a valid remapping
-        run.remap(mockgrid, method='remapbil', out_dir=mock_tmpdir)
+        run.remap(mockgrid, method='remapbil', out_dir=mock_tmpdir, files='*Z.nc')
         # Update of the data directory sould only be done after reloading the dataset
         assert run.run_dir == mock_tmpdir
+        files = [p for p in Path(mock_tmpdir).rglob('*Z.nc')]
+        assert len(files) == 10
 
-def test_load_reamapped(mock_tmpdir):
+def test_load_reamapped(mock_tmpdir, mockgrid):
     with RunDirectory(mock_tmpdir, 'test', model_type='DWD') as run:
         assert run.run_dir == mock_tmpdir
+        run.load_data()
+        print(run.files)
+        run.remap(mockgrid, method='remapcon', files=run.files[0])
+        assert len(run.files) == 1
 
 
 def test_dataset(mock_run, mock_timedir):

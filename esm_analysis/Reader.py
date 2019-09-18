@@ -94,12 +94,6 @@ class CMORPH(_BaseVariables):
    def __init__(self):
       super().__init__()
 
-class ECHAM(_BaseVariables):
-   """Variable name Class for ECHAM / MPI version of ICON."""
-
-   def __init__(self):
-      super().__init__()
-
 class MPI(_BaseVariables):
    """Variable name Class for ECHAM / MPI version of ICON."""
 
@@ -108,6 +102,7 @@ class MPI(_BaseVariables):
 
 
 cdo = Cdo()
+ECHAM = MPI
 
 def lookup(setup):
    try:
@@ -238,10 +233,7 @@ class RunDirectory:
     def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None):
         out_file = op.join(out_dir, op.basename(infile))
         if method == 'weighted':
-           try:
-               cdo_str = str(griddes)+','+str(weightfile)
-           except TypeError:
-               cdo_str = griddes
+           cdo_str = str(griddes)+','+str(weightfile)
            return cdo.remap('{} {}'.format(cdo_str, str(infile)),
                                            output=str(out_file))
         else:
@@ -374,8 +366,12 @@ class RunDirectory:
         if files is None:
             files = self.files
         elif isinstance(files, (str, Path)):
-           files = sorted([f.as_posix() for f in Path(run_dir).rglob(files)])
-
+           if not Path(files).is_file():
+               files = sorted([f.as_posix() for f in Path(run_dir).rglob(files)])
+           else:
+               files = (files, )
+        if len(files) == 0:
+            raise FileNotFoundError('No files for remapping found')
         grid_files = self.apply_function(self._remap, files,
                                          args=args,
                                          n_workers=n_workers,
@@ -433,12 +429,11 @@ class RunDirectory:
               raise FileNotFoundError('Run Directory is empty')
 
         def get_input(rundir, inp_file):
-           if op.isfile(str(inp_file)):
-              return inp_file
-           inp_file = op.join(rundir, 'o3_icon_DOM01.nc') # DWD ozone file
-           if not op.isfile(inp_file):
-              inp_file = op.join(rundir, 'bc_ozone.nc') # MPI ozone file
-           return inp_file
+           for file in (inp_file,
+                        op.join(rundir, 'o3_icon_DOM01.nc'),
+                        op.join(rundir,      'bc_ozone.nc')):
+               if op.isfile(str(file)):
+                   return inp_file
 
         input_file = get_input(run_dir, infile)
         weight_file = op.abspath(op.join(run_dir, 'remapweights.nc'))
