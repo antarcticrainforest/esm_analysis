@@ -100,11 +100,23 @@ class MPI(_BaseVariables):
    def __init__(self):
       super().__init__()
 
+class GenericModel(dict):
+   """Default dummy class - No lookup takes place."""
+
+   def __getattr__(self, attr):
+      return self.get(attr, attr)
+
+   def __getitem__(self, attr):
+      return self.__getattr__(attr)
+
+
 
 cdo = Cdo()
 ECHAM = MPI
 
 def lookup(setup):
+   if setup is None:
+       return GenericModel()
    try:
       LookupObj = getattr(sys.modules[__name__], setup)
    except AttributeError:
