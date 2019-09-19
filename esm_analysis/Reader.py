@@ -450,8 +450,8 @@ class RunDirectory:
             filename containing the desired output grid information
         run_dir : str
             path to the experiment directory
-        exp_name  : str
-            name of the experiment
+        prefix  : str
+            filename prefix
         model_type : str
             Model/Product name of the dataset to be read
         infile : str
@@ -488,7 +488,10 @@ class RunDirectory:
                                      output=weight_file)
         cls.gridfile = griddes
         cls.weightfile = op.abspath(weight_file)
-        return cls(run_dir, exp_name, model_type=model_type, overwrite=overwrite)
+        return cls(run_dir, prefix=prefix,
+                   model_type=model_type,
+                   overwrite=overwrite,
+                   client=client)
 
     def load_data(self, filenames=None,
                   overwrite=False,
