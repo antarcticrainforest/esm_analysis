@@ -9,12 +9,12 @@ from esm_analysis import (Config, icon2datetime, lookup, RunDirectory)
 
 def test_load_empty_data(mock_tmpdir, mockgrid, mockweights):
     with pytest.raises(FileNotFoundError):
-        with RunDirectory.gen_weights(mockgrid, mock_tmpdir, 'test',
+        with RunDirectory.gen_weights(mockgrid, mock_tmpdir, prefix='test',
                 model_type='DWD', infile=mockweights, overwrite=False):
             pass
 
 def test_load_data(mock_timedir):
-    with RunDirectory(mock_timedir, 'test', model_type='DWD') as run:
+    with RunDirectory(mock_timedir, prefix='test', model_type='DWD') as run:
         # At first not data should be loaded only information gathered
         assert run.dataset == {}
         assert len(run.files) == 10
@@ -28,8 +28,8 @@ def test_load_data(mock_timedir):
 
 
 def test_gen_weights(mock_vardir, mockgrid, mockweights):
-    with RunDirectory.gen_weights(mockgrid, mock_vardir, 'test',
-            model_type='DWD', infile=mockweights, overwrite=True) as run:
+    with RunDirectory.gen_weights(mockgrid, mock_vardir, prefix='test',
+            infile=mockweights, overwrite=True) as run:
         # At first not data should be loaded only information gathered
         assert run.dataset == {}
         assert run.name_list['picklefile'] == None
@@ -54,7 +54,7 @@ def test_weighted_remap(mock_run, mockgrid, mock_timedir):
 
 def test_other_remap(mock_timedir, mockgrid, mock_tmpdir):
     from pathlib import Path
-    with RunDirectory(Path(mock_timedir) / 'remap_grid', 'test', model_type='DWD') as run:
+    with RunDirectory(Path(mock_timedir) / 'remap_grid') as run:
         # Try giving a list for loading the data
         assert run.is_remapped == True
         run.load_data(run.files)
@@ -79,7 +79,7 @@ def test_other_remap(mock_timedir, mockgrid, mock_tmpdir):
         assert len(files) == 10
 
 def test_reload(mock_tmpdir, mockgrid):
-    with RunDirectory(mock_tmpdir, 'test', model_type='DWD') as run:
+    with RunDirectory(mock_tmpdir) as run:
         assert run.run_dir == mock_tmpdir
         # reload the dataset (do not use the picklefile)
         run.load_data(['*.nc'], overwrite=True)

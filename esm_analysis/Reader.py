@@ -100,11 +100,23 @@ class MPI(_BaseVariables):
    def __init__(self):
       super().__init__()
 
+class GenericModel(dict):
+   """Default dummy class - No lookup takes place."""
+
+   def __getattr__(self, attr):
+      return self.get(attr, attr)
+
+   def __getitem__(self, attr):
+      return self.__getattr__(attr)
+
+
 
 cdo = Cdo()
 ECHAM = MPI
 
 def lookup(setup):
+   if setup is None:
+       return GenericModel()
    try:
       LookupObj = getattr(sys.modules[__name__], setup)
    except AttributeError:
@@ -180,27 +192,59 @@ class RunDirectory:
         self.close()
 
     def __init__(self,
-                 run_dir,
-                 exp_name, *,
-                 model_type='ECHAM',
+                 run_dir, *,
+                 prefix=None,
+                 model_type=None,
                  overwrite=False,
-                 name_list=None,
-                 weightfile=None):
-        '''Init class '''
+                 f90name_list=None,
+                 client=None):
+        '''Create an RunDirecotry object from a given input directory.
 
-        self.exp_name = exp_name
+        The RunDirectory object gathers all nesseccary information on the
+        data that is stored in the run directory. Once loaded the most
+        important meta data will be stored in the run directory for faster
+        access the second time.
+
+        Parameters:
+        ===========
+        run_dir : str
+            Name of the directory where the data that should be read is stored.
+
+        prefix : str (default: None)
+            filname prefix
+        model_type : str (default: None)
+            model name/ observation porduct that created the data. This will
+            be used to generate a variable lookup table. If None is given
+            (default) then no lookup table will be generated. This can be useful
+            for loading various model datasets and comparing them while only
+            accessing the data with one set of variable names.
+        overwrite : bool (default : False)
+            If true the meta data will be generated again even if it has been
+            stored to disk already.
+        f90name_list : str (default : None)
+            Filename to an optional f90 namelist with additional information
+            about the data
+        client : dask.distributed cleint (default : None)
+            Configuration that is used the create a dask client which recieves
+            tasks for multiproccessing. By default (None) a local client will
+            be started.
+        '''
+
+        self.dask_client = Client(client)
+        self.prefix = prefix or ''
         self.variables = lookup(model_type)
         info_file = op.join(str(run_dir), '.run_info.json')
-        nml_file = name_list or 'NAMELIST_{}_atm'.format(exp_name)
-        self.weightfile = weightfile or self.weightfile
+        nml_file = f90name_list or 'NAMELIST_{}*'.format(prefix)
         if overwrite or not op.isfile(info_file):
-            try:
-              self.name_list = f90nml.read(op.join(run_dir, nml_file))
-            except FileNotFoundError:
-              self.name_list = {}
-
+            self.name_list = {}
+            for nml_file in Path(run_dir).rglob(nml_file):
+                try:
+                    self.name_list = {**self.name_list,
+                                      **f90nml.read(str(run_dir/ nml_file))}
+                except (FileNotFoundError, IsADirectoryError):
+                    pass
             self.name_list['output'] = self._get_files(run_dir)
-            self.name_list['weightfile'] = self.weightfile
+            self.name_list['weightfile'] = None
             self.name_list['gridfile'] = self.griddes
             self.name_list['run_dir'] = op.abspath(run_dir)
             self.name_list['remap'] = False
@@ -215,7 +259,6 @@ class RunDirectory:
            self.name_list['run_dir'] = run_dir
            self._dump_json()
         self._dataset = {}
-        self.dask_client = Client()
 
     @staticmethod
     def _get_files(run_dir, remap=False):
@@ -393,11 +436,12 @@ class RunDirectory:
     @classmethod
     def gen_weights(cls,
                     griddes,
-                    run_dir,
-                    exp_name, *,
+                    run_dir,* ,
+                    prefix=None,
                     model_type='ECHAM',
                     infile=None,
-                    overwrite=False):
+                    overwrite=False,
+                    client=None):
         """Create grid weigths from given grid description and instanciate class.
 
         Parameters:
@@ -406,8 +450,8 @@ class RunDirectory:
             filename containing the desired output grid information
         run_dir : str
             path to the experiment directory
-        exp_name  : str
-            name of the experiment
+        prefix  : str
+            filename prefix
         model_type : str
             Model/Product name of the dataset to be read
         infile : str
@@ -444,7 +488,10 @@ class RunDirectory:
                                      output=weight_file)
         cls.gridfile = griddes
         cls.weightfile = op.abspath(weight_file)
-        return cls(run_dir, exp_name, model_type=model_type, overwrite=overwrite)
+        return cls(run_dir, prefix=prefix,
+                   model_type=model_type,
+                   overwrite=overwrite,
+                   client=client)
 
     def load_data(self, filenames=None,
                   overwrite=False,

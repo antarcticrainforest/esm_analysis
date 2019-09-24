@@ -44,7 +44,7 @@ def mockweights():
 @pytest.fixture(scope='session')
 def mock_run(mockgrid, mock_timedir, mockweights):
     from esm_analysis import RunDirectory
-    run = RunDirectory.gen_weights(mockgrid, mock_timedir, 'test', model_type='DWD',
+    run = RunDirectory.gen_weights(mockgrid, mock_timedir, prefix='test', model_type='DWD',
             infile=mockweights)
     yield run
 
