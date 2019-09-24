@@ -48,6 +48,12 @@ setup(name="esm_analysis",
           'xarray',
       ],
       extras_require={
+        'docs': [
+              'sphinx',
+              'nbsphinx',
+              'ipython',  # For nbsphinx syntax highlighting
+              'sphinxcontrib_github_alt',
+              ],
        'test': [
               'pytest',
               'pytest-cov',
