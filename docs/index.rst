@@ -9,10 +9,10 @@ Python Tools for Analysing Earth System Model Data
 **esm-analysis** is a Python 3 library for accessingand working with output
 data from various *Earth System Models*. It is available via `GitHub <https://github.com/antarcticrainforest/esm_analysis>`_.
 
+Contents:
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    reading_runs
    calculator
