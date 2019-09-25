@@ -13,6 +13,13 @@ who many data files are present and any other meta-data that is important for
 the experiment.
 
 .. class:: RunDirectory
+
+    .attribute: dask_client
+
+    This attributed gives access to the dask distrbuted client that is created
+    upon loading the RunDirecotry. The client is used to apply functions, load 
+    and regrid data in parallel.
+
     ..attribute: run_dir
 
     The name of the directory that has been loaded
@@ -24,6 +31,13 @@ the experiment.
     ..automethod: close
 
     Close the dask client
+
+    ..attribute: is_remapped
+
+    Retruns true or fals whether or not the dataset has been remapped by the the
+    remapped method
+
+    ..automethod: remap
 
 
 Loading the Data
@@ -43,10 +57,19 @@ access to the netcdf data the :func: ``load_data`` method has to be apply
 
     ..automethod: remap
 
-    Regrid the loaded dataset to a different input grid
+    Regrid the files or a subset of it. The user can chose the output directory
+    and the remapping method. Currently distance weighted, nearest neighbor,
+    bilinear, conservative and largest area fraction are implemented
 
-    All netcdf data files that have been loaded
 
     ..automethod: apply_function
 
-    Apply a given function to the loaded dataset.
+    Apply a given input function to a collection of input streams. The function
+    will be applied in parallel using the dask distributed client.
+
+    ..automethod: gen_weights
+
+    Create weights file that can be later used for distance weighted regridding.
+
+
+

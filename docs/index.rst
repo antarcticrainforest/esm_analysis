@@ -19,7 +19,7 @@ data from various *Earth System Models*. It is available via `GitHub <https://gi
 .. toctree::
     :caption: Examples:
 
-    Demo
+    demo
 
 .. toctree::
     :caption: Development
