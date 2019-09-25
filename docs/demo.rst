@@ -1,6 +1,6 @@
 
 Basic Usage
------------
+===========
 
 This notebook should demonstrate how I try to access and process data
 more easily. As of now the ``mpi_data`` library is just a concept and
@@ -11,6 +11,9 @@ in functionality based on **CMORPH** satellite data:
 
     # Import the library 
     import esm_analysis
+
+Creating a Task Schedule
+------------------------
 
 To involve a computing cluster we’ll import the ``SLURMCluster`` from
 ``dask_jobqueue``
@@ -61,8 +64,8 @@ project
         user, sys, _, _, _ = os.times()
         return user+sys
 
-Creating a *RunDirectory* object
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating the *RunDirectory* object
+----------------------------------
 
 The ``RunDirectory`` class opens netcdf data and tries to fetch
 additional information on the data that might be stored in fortran name
@@ -158,6 +161,9 @@ filenames for a certain months together:
 
 
 
+Re-Gridding the Input Data
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Let’s remap the content of this run. The ``run_directory`` object also
 offers a method for this. The remapping method is applied by calling
 ``remap``.
@@ -205,6 +211,9 @@ the work folder.
     CPU times: user 6min 5s, sys: 11.3 s, total: 6min 16s
     Wall time: 34min 1s
 
+
+Applying Custom Functions to the Run
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The remapped data is stored in *daily* files. Suppose we want to merge
 the data into monthly files. We can take advantage of the fact that the
@@ -333,6 +342,9 @@ The loaded dataset can be accessed with help of the ``dataset`` property
 
 
 
+Using Data-Caches for faster realoading
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Loading the data can take, depending on the amount of files in the run,
 a significant up amount of time. This is where the ``overwrite`` keyword
 argument comes in. When creating an instance of the ``RunDirectory``
@@ -364,6 +376,9 @@ dataset.
 
     Loading the serialized pickle took 0.43000000000006366 seonds
 
+
+Interactive Data Visualisation
+------------------------------
 
 ``mpi_data`` comes with a very rudimentary plotting collection. For
 instances plotting on maps is still not supported. Yet the 2D rainfall
