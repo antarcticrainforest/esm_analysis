@@ -11,14 +11,8 @@ like relative humidity.
 
  .. automethod:: calc_rh
 
- Calculate relative humidity from given specific humidity, temperature and air pressure.
-
  .. automethod:: calc_sathum
 
- Calculate saturation humidity from given temperature and air pressrue
-
  .. automethod:: calc_satpres
-
- Calculate saturation pressure at a given temperature
 
 
