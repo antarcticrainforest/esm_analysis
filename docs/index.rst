@@ -15,6 +15,7 @@ data from various *Earth System Models*. It is available via `GitHub <https://gi
    :caption: Contents:
 
    reading_runs
+   calculator
 
 .. toctree::
     :caption: Examples:
