@@ -7,7 +7,7 @@ Variable Calculation
 The ``Calculator`` sub module offers some methods to calculated common variables
 like relative humidity.
 
-.. autoclass:: Calculator
+.. class:: Calculator
 
  .. automethod:: calc_rh
 

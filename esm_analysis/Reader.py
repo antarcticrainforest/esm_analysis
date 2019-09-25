@@ -156,14 +156,20 @@ __all__ = ['RunDirectory', 'lookup', 'Config', 'cdo', 'icon2datetime']
 def icon2datetime(icon_dates, start=None):
     """Convert datetime objects in icon format to python datetime objects.
 
+    ::
+
+        time = icon2datetime([20011201.5])
+
     Parameters
-    ==========
-    icon_dates : (collection)
-    Collection of icon date dests
+    ----------
+
+    icon_dates: collection
+        Collection of icon date dests
 
     Returns
-    =======
-    collection of datetime objects
+    -------
+
+        dates:  datetime objects
     """
 
     def convert(icon_date):
@@ -227,31 +233,35 @@ class RunDirectory:
                  client=None):
         '''Create an RunDirecotry object from a given input directory.
 
+        ::
+
+            run = RunDirectory('/work/mh0066/precip-project/3-hourly/CMORPH')
+
         The RunDirectory object gathers all nesseccary information on the
         data that is stored in the run directory. Once loaded the most
         important meta data will be stored in the run directory for faster
         access the second time.
 
-        Parameters:
-        ===========
-        run_dir : str
+        Parameters
+        ----------
+        run_dir: str
             Name of the directory where the data that should be read is stored.
 
-        prefix : str (default: None)
+        prefix: str, optional (default: None)
             filname prefix
-        model_type : str (default: None)
+        model_type: str, optional (default: None)
             model name/ observation porduct that created the data. This will
             be used to generate a variable lookup table. If None is given
             (default) then no lookup table will be generated. This can be useful
             for loading various model datasets and comparing them while only
             accessing the data with one set of variable names.
-        overwrite : bool (default : False)
+        overwrite: bool, optional (default : False)
             If true the meta data will be generated again even if it has been
             stored to disk already.
-        f90name_list : str (default : None)
+        f90name_list: str, optional (default : None)
             Filename to an optional f90 namelist with additional information
             about the data
-        client : dask.distributed cleint (default : None)
+        client: dask.distributed cleint, optional (default : None)
             Configuration that is used the create a dask client which recieves
             tasks for multiproccessing. By default (None) a local client will
             be started.
@@ -326,24 +336,32 @@ class RunDirectory:
                        **kwargs):
        """Apply function to given collection.
 
-       Parameters:
-       ==========
-       mappable : method
-       method that is applied
+       ::
 
-       collection : collection
-       collection that is distributed in a thread pool
+           result = run.apply_function(lambda dest, v: dset[v].sum(dim='time'), run.dataset, args=('temp',))
 
-       args : additional arguments passed into the method
-       n_workers : int
-       Number of parallel proccess that are applied
+       Parameters
+       ----------
 
-       **kwargs :
-       additional keyword arguments controlling the progress bar parameter
+       mappable: method
+            method that is applied
 
-       Returns: list / int
-       combined output of the thread-pool processes or if processes failed
-       an integer of 257 status
+       collection: collection
+            collection that is distributed in a thread pool
+
+       args:
+            additional arguments passed into the method
+
+       n_workers: int
+            Number of parallel proccess that are applied
+
+       **kwargs: optional
+            additional keyword arguments controlling the progress bar parameter
+
+       Returns
+       -------
+
+           output: combined output of the thread-pool processes
        """
        n_workers = n_workers or mp.cpu_count()
        args = args or ()
@@ -373,27 +391,31 @@ class RunDirectory:
               ):
         """Regrid to a different input grid.
 
-        Parameters:
-        ===========
-        grid_description : str
+        ::
+
+            run.remap('echam_griddes.txt', method='remapbil')
+
+        Parameters
+        ----------
+        grid_description: str
                           Path to file containing the output grid description
 
-        n_workers : int (default: num of cpu's)
+        n_workers: int (default: num of cpu's)
                     Number of parallel processes that remap input files
 
-        weight_file : str (default: None)
+        weight_file: str (default: None)
                      Path to file containing grid weights
 
-        out_dir : str (default: lonlat)
+        out_dir: str (default: lonlat)
                   Directory name for the output
-        files : str, collection (default : all datafiles)
+        files: str, collection (default : all datafiles)
                 Filenames that are to be remapped.
-        method : str (default : weighted)
+        method: str (default: weighted)
                  Remap method that is applyied to the data, can be either
                  weighted (default), bil, con, laf, nn. Not if weighted is chosen
                  this class should have been instanciated either with a given
                  weightfile or using the gen_weights methods.
-        weightfile : str (default : None)
+        weightfile: str (default: None)
                      File containing the weights for the distance weighted
                      remapping.
 
@@ -452,25 +474,31 @@ class RunDirectory:
                     client=None):
         """Create grid weigths from given grid description and instanciate class.
 
-        Parameters:
-        ===========
-        griddess : str
+        ::
+
+            run = RunDirectory.gen_weights('echam_grid.txt', '/work/mh0066/precip-project/3-hourly/CMORPH/', infile='griddes.nc')
+
+        Parameters
+        ----------
+
+        griddess: str
             filename containing the desired output grid information
-        run_dir : str
+        run_dir: str
             path to the experiment directory
-        prefix  : str
+        prefix: str
             filename prefix
-        model_type : str
+        model_type: str
             Model/Product name of the dataset to be read
-        infile : str
+        infile: str
             Path to input file. By default the method looks for appropriate
             inputfiles
-        overwrite : bool (default: False)
+        overwrite: bool, optional (default: False)
             should an existing weight file be overwritten
 
-        Retruns:
-        ========
-        RunDirectory object
+        Returns
+        -------
+
+            RunDirectory: RunDirectory object
         """
         try:
            out_file = [f for f in Path(run_dir).absolute().rglob('*2d*.nc')][0]
@@ -504,29 +532,34 @@ class RunDirectory:
     def load_data(self, filenames=None,
                   overwrite=False,
                   **kwargs):
-       """Open a multifile dataset.
+        """Open a multifile dataset using xrarray open_mfdataset.
 
-        Parameters:
-        ==========
-        filenames : collection/str
-        collection of filenames, filename or glob pattern for filenames
-        that should be read. Default behavior is reading all dataset files
+        ::
 
-        overwrite : bool (default : False)
-        For faster access datasets are serialized and stored in pickle files
-        after beeing loaded, this drastically speeds up read datasets
-        consecutive times. If overwrite is set True the data will be read
-        from netcdf-files regardless.
+           run.load_data('*2008*.nc')
 
-        **kwargs : Additional keyword arguments passed to xarray's open_mfdataset
-       """
+        Parameters
+        ----------
+        filenames: collection/str
+            collection of filenames, filename or glob pattern for filenames
+            that should be read. Default behavior is reading all dataset files
 
-       if overwrite or self.name_list['picklefile'] is None:
+        overwrite: bool, optional (default : False)
+            For faster access datasets are serialized and stored in pickle files
+            after beeing loaded, this drastically speeds up read datasets
+            consecutive times. If overwrite is set True the data will be read
+            from netcdf-files regardless.
+
+        **kwargs: optional
+            Additional keyword arguments passed to xarray's open_mfdataset
+        """
+
+        if overwrite or self.name_list['picklefile'] is None:
           self._load_data(filenames, kwargs)
-       try:
+        try:
           with open(str(self.name_list['picklefile']), 'rb') as f:
              self._dataset = cloudpickle.load(f)
-       except :
+        except :
           self._load_data(filenames, kwargs)
 
 
