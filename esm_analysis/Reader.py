@@ -15,12 +15,39 @@ import warnings
 from cdo import Cdo
 import cloudpickle
 import dask
-from dask.distributed import (Client, progress, utils)
+from dask.distributed import (as_completed, Client, progress, utils)
+from distributed.diagnostics.progressbar import (futures_of, is_kernel)
+
 import f90nml
 import numpy as np
 import pandas as pd
 import toml
+import tqdm
 from xarray import open_mfdataset
+
+def _progress_bar(*futures, **kwargs):
+    """Connect dask futures to tqdm progressbar."""
+
+    notebook = kwargs.pop('notebook', None)
+    multi = kwargs.pop('multi', True)
+    complete = kwargs.pop('complete', True)
+    bar_title = kwargs.pop('label', 'Progress')
+
+    futures = futures_of(futures)
+    if not isinstance(futures, (set, list)):
+        futures = [futures]
+
+    kwargs.setdefault('total', len(futures))
+    kwargs.setdefault('unit', 'it')
+    kwargs.setdefault('unit_scale', True)
+    kwargs.setdefault('leave', True)
+    kwargs.setdefault('desc', '{}: '.format(bar_title))
+    if notebook is None:
+        notebook = is_kernel()  # often but not always correct assumption
+
+    progress = tqdm.tqdm_notebook if notebook else tqdm.tqdm
+    _ = list(progress(as_completed(futures), **kwargs))
+
 
 class _BaseVariables(dict):
    """Base Class to define Variable Name."""
@@ -296,9 +323,7 @@ class RunDirectory:
                        collection, *,
                        args=None,
                        n_workers=None,
-                       bar_title=None,
-                       backend='dask',
-                       bar_kwargs={}):
+                       **kwargs):
        """Apply function to given collection.
 
        Parameters:
@@ -313,38 +338,21 @@ class RunDirectory:
        n_workers : int
        Number of parallel proccess that are applied
 
-       bar_title : str
-       Title of the  progress bar
-
-       bar_kwargs : dict
-       dict controlling the progress bar parameter
+       **kwargs :
+       additional keyword arguments controlling the progress bar parameter
 
        Returns: list / int
-       combined output of the thread-pool processes or if processes failed 
+       combined output of the thread-pool processes or if processes failed
        an integer of 257 status
        """
        n_workers = n_workers or mp.cpu_count()
        args = args or ()
-       bar_title = bar_title or 'Progress'
        tasks = [(entry, *args) for entry in collection]
-       bar_kwargs.setdefault('unit', 'it')
-       bar_kwargs.setdefault('unit_scale', True)
-       bar_kwargs.setdefault('leave', True)
-       bar_kwargs.setdefault('desc', '{}: '.format(bar_title))
        n_workers  = min(n_workers, len(tasks))
-       with dask.config.set(get=self.dask_client.get):
-            futures = [self.dask_client.submit(mappable, *task) for task in tasks]
-            progress(futures)
-       status = 0
-       output = []
-       for future in futures:
-          try:
-             output.append(future.result())
-          except Exception as e:
-             print('There was an error: {}'.format(e))
-             status = 1
-       if status != 0:
-           output = 257
+       futures = [self.dask_client.submit(mappable, *task) for task in tasks]
+       _progress_bar(futures, **kwargs)
+       output = self.dask_client.gather(futures)
+
        return output
 
     def close(self):
@@ -418,7 +426,7 @@ class RunDirectory:
         grid_files = self.apply_function(self._remap, files,
                                          args=args,
                                          n_workers=n_workers,
-                                         bar_title='Remapping')
+                                         label='Remapping')
 
         if not isinstance(grid_files, int):
             self.name_list['output'] = sorted(grid_files)
@@ -538,9 +546,7 @@ class RunDirectory:
 
         kwargs.setdefault('parallel',  True)
         kwargs.setdefault('combine', 'by_coords')
-        with dask.config.set(get=self.dask_client.get):
-            self._dataset = open_mfdataset(read_files, **kwargs)
-
+        self._dataset = open_mfdataset(read_files, **kwargs)
         self._pickle_dataset()
 
     def _pickle_dataset(self):

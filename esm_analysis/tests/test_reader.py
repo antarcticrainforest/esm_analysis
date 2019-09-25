@@ -99,11 +99,9 @@ def test_apply_function(mock_run):
                                        args=('t_2m', ))
     assert len(max_vals) == 2
     assert np.allclose(max_vals, 0) == True
-
-    failed_out = mock_run.apply_function(apply_func, (mock_run.dataset, mock_run.dataset),
+    with pytest.raises(KeyError):
+        failed_out = mock_run.apply_function(apply_func, (mock_run.dataset, mock_run.dataset),
                                          args=('blabla', ))
-    # That should have failed
-    assert type(failed_out) == int
 
 def test_lookup():
     from esm_analysis.Reader import MPI, CMORPH
