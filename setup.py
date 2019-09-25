@@ -44,10 +44,18 @@ setup(name="esm_analysis",
           'numpy',
           'pandas',
           'toml',
+          'tqdm',
           'seaborn',
           'xarray',
       ],
       extras_require={
+        'docs': [
+              'sphinx',
+              'nbsphinx',
+              'recommonmark',
+              'ipython',  # For nbsphinx syntax highlighting
+              'sphinxcontrib_github_alt',
+              ],
        'test': [
               'pytest',
               'pytest-cov',
