@@ -6,7 +6,6 @@ directory containing netcdf files. You can load the **meta-data** which is
 associated with such an experiement by calling :func: `RunDirectory``.
 
 .. module:: esm_analysis
-.. autofunction:: RunDirectory
 
 Applying :func: ``RunDirectory`` only loads meta data, that is which model,
 who many data files are present and any other meta-data that is important for
@@ -14,7 +13,7 @@ the experiment.
 
 .. class:: RunDirectory
 
-    .attribute: dask_client
+    ..attribute: dask_client
 
     This attributed gives access to the dask distrbuted client that is created
     upon loading the RunDirecotry. The client is used to apply functions, load 
