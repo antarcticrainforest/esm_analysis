@@ -12,7 +12,10 @@ import sys
 from tempfile import NamedTemporaryFile
 import warnings
 
-from cdo import Cdo
+try:
+    from cdo import Cdo
+except FileNotFoundError:
+    pass
 import cloudpickle
 import dask
 from dask.distributed import (as_completed, Client, progress, utils)
