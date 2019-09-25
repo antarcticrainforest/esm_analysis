@@ -52,6 +52,7 @@ setup(name="esm_analysis",
         'docs': [
               'sphinx',
               'nbsphinx',
+              'recommonmark',
               'ipython',  # For nbsphinx syntax highlighting
               'sphinxcontrib_github_alt',
               ],
