@@ -1,6 +1,6 @@
 
-Reading data Using ``esm_analysis`` library
--------------------------------------------
+Basic Usage
+-----------
 
 This notebook should demonstrate how I try to access and process data
 more easily. As of now the ``mpi_data`` library is just a concept and
