@@ -46,6 +46,7 @@ setup(name="esm_analysis",
           'toml',
           'tqdm',
           'seaborn',
+          'nbsphinx',
           'xarray',
       ],
       extras_require={
