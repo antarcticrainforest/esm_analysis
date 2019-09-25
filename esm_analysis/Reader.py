@@ -14,8 +14,9 @@ import warnings
 
 try:
     from cdo import Cdo
+    cdo = Cdo()
 except FileNotFoundError:
-    pass
+    cdo = {}
 import cloudpickle
 import dask
 from dask.distributed import (as_completed, Client, progress, utils)
@@ -141,7 +142,6 @@ class GenericModel(dict):
 
 
 
-cdo = Cdo()
 ECHAM = MPI
 
 def lookup(setup):
