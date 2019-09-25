@@ -390,7 +390,7 @@ class RunDirectory:
                 Filenames that are to be remapped.
         method : str (default : weighted)
                  Remap method that is applyied to the data, can be either
-                 weighted (default), bil, con, laf. Not if weighted is chosen
+                 weighted (default), bil, con, laf, nn. Not if weighted is chosen
                  this class should have been instanciated either with a given
                  weightfile or using the gen_weights methods.
         weightfile : str (default : None)
@@ -401,11 +401,11 @@ class RunDirectory:
         n_workers = n_workers or mp.cpu_count()
         out_dir = out_dir or Path(self.run_dir) / 'remap_grid'
         Path(out_dir).absolute().mkdir(exist_ok=True)
-        impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf')
+        impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf', 'remapnn')
         weightfile = weightfile or self.weightfile
         if method not in impl_methods:
            raise NotImplementedError('Method not available. Currently implemented'
-                                     ' methods are weighted, remapbil, remapcon, reamplaf')
+                                     ' methods are weighted, remapbil, remapcon, remaplaf, remapnn')
         if weightfile is None and method == 'weighted':
            raise ValueError('No weightfile was given, either choose different'
                             ' remapping method or instanciated the Reader object'
