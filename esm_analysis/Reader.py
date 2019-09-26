@@ -340,7 +340,7 @@ class RunDirectory:
             remap_func = getattr(cdo, method)
         with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf:
             if infile.suffix != '.nc':
-                infile = cdo.copy(input=infile, output=tf.name, options = "-f nc4")
+                infile = cdo.copy(' '+str(infile), output=tf.name, options = "-f nc4")
             return remap_func('{} {}'.format(cdo_str, str(infile)), output=str(out_file))
 
     @property
