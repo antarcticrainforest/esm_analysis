@@ -233,6 +233,7 @@ class RunDirectory:
                  model_type=None,
                  overwrite=False,
                  f90name_list=None,
+                 filetype='nc',
                  client=None):
         '''Create an RunDirecotry object from a given input directory.
 
@@ -261,10 +262,12 @@ class RunDirectory:
         overwrite: bool, optional (default : False)
             If true the meta data will be generated again even if it has been
             stored to disk already.
-        f90name_list: str, optional (default : None)
+        f90name_list: str, optional (default: None)
             Filename to an optional f90 namelist with additional information
             about the data
-        client: dask.distributed cleint, optional (default : None)
+        filetype: str, optional (default: nc)
+            Input data file format
+        client: dask.distributed cleint, optional (default: None)
             Configuration that is used the create a dask client which recieves
             tasks for multiproccessing. By default (None) a local client will
             be started.
@@ -283,10 +286,10 @@ class RunDirectory:
                                       **f90nml.read(str(run_dir/ nml_file))}
                 except (FileNotFoundError, IsADirectoryError):
                     pass
-            self.name_list['output'] = self._get_files(run_dir)
+            self.name_list['output'] = self._get_files(run_dir, filetype)
             self.name_list['weightfile'] = None
             self.name_list['gridfile'] = self.griddes
-            self.name_list['run_dir'] = op.abspath(run_dir)
+            self.name_list['run_dir'] = op.abspath(str(run_dir))
             self.name_list['remap'] = False
             self.name_list['picklefile'] = None
             self._dump_json()
@@ -295,33 +298,38 @@ class RunDirectory:
                 self.name_list = json.load(f)
         # Sanity check
         if self.name_list['remap']:
-           self.name_list['output'] = self._get_files(run_dir, remap=True)
+           self.name_list['output'] = self._get_files(run_dir, filetype, remap=True)
            self.name_list['run_dir'] = run_dir
            self._dump_json()
         self._dataset = {}
 
     @staticmethod
-    def _get_files(run_dir, remap=False):
+    def _get_files(run_dir, extensions, remap=False):
        """Get all netcdf filenames."""
+       ext_str = ''.join(['[{}{}]'.format(l.lower(), l.upper()) for l in extensions])
        if remap:
-          pat = re.compile('^(?!.*restart).*[nN][cC]')
+          pat = re.compile('^(?!.*restart).*{}'.format(ext_str))
        else:
-          pat = re.compile('^(?!.*restart|.*remap).*[nN][cC]')
-       glob_pad = '*.[nN][cC]'
+          pat = re.compile('^(?!.*restart|.*remap).*{}'.format(ext_str))
+       glob_pad = '*.{}'.format(ext_str)
        result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad) \
                              if re.match(pat, f.as_posix())])
        return result
 
     @staticmethod
     def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None):
-        out_file = op.join(out_dir, op.basename(infile))
+        infile = Path(infile)
+        out_file = out_dir / infile.with_suffix('.nc').name
         if method == 'weighted':
-           cdo_str = str(griddes)+','+str(weightfile)
-           return cdo.remap('{} {}'.format(cdo_str, str(infile)),
-                                           output=str(out_file))
+            cdo_str = str(griddes)+','+str(weightfile)
+            remap_func = getattr(cdo, 'remap')
         else:
-           remap_func = getattr(cdo, method)
-           return remap_func('{} {}'.format(griddes, str(infile)), output=str(out_file))
+            cdo_str = str(griddes)
+            remap_func = getattr(cdo, method)
+        with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf:
+            if infile.suffix != '.nc':
+                infile = cdo.copy(input=infile, output=tf.name, options = "-f nc4")
+            return remap_func('{} {}'.format(cdo_str, str(infile)), output=str(out_file))
 
     @property
     def run_dir(self):
@@ -437,13 +445,13 @@ class RunDirectory:
                             ' by providing a weightfile or generate a weightfile'
                             ' by calling the gen_weights methods')
 
-        args = (str(out_dir), str(grid_description), str(weightfile), method)
+        args = (Path(out_dir), grid_description, weightfile, method)
         run_dir = self.name_list['run_dir']
         if files is None:
             files = self.files
         elif isinstance(files, (str, Path)):
            if not Path(files).is_file():
-               files = sorted([f.as_posix() for f in Path(run_dir).rglob(files)])
+               files = sorted([f for f in Path(run_dir).rglob(files)])
            else:
                files = (files, )
         if len(files) == 0:
