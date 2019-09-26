@@ -16,6 +16,8 @@ def test_load_empty_data(mock_tmpdir, mockgrid, mockweights):
 def test_load_data(mock_timedir):
     with RunDirectory(mock_timedir, prefix='test', model_type='DWD') as run:
         # At first not data should be loaded only information gathered
+        run.empty_cache()
+        assert run.name_list['picklefile'] == None
         assert run.dataset == {}
         assert len(run.files) == 10
         assert run.is_remapped == False
@@ -25,6 +27,8 @@ def test_load_data(mock_timedir):
         assert (run.variables['tas'] in run.dataset.keys()) == True
         assert run.dataset[run.variables['tas']].shape == (240, 512)
         assert run.name_list['picklefile'] != None
+        run.empty_cache()
+        assert run.name_list['picklefile'] == None
 
 
 def test_gen_weights(mock_vardir, mockgrid, mockweights):
@@ -34,7 +38,13 @@ def test_gen_weights(mock_vardir, mockgrid, mockweights):
         assert run.dataset == {}
         assert run.name_list['picklefile'] == None
         # Test for essential keys to be pressent
-        assert sorted(run.name_list.keys()) == ['gridfile', 'output', 'picklefile', 'remap', 'run_dir', 'weightfile']
+        assert sorted(run.name_list.keys()) == sorted(['gridfile',
+                                                       'output',
+                                                       'picklefile',
+                                                       'remap',
+                                                       'run_dir',
+                                                       'weightfile',
+                                                       'json_file'])
         assert run.gridfile == mockgrid
         assert run.weightfile == str(Path(mock_vardir) / 'remapweights.nc')
         run.load_data('*t_2m*.nc')

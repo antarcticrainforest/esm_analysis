@@ -1,6 +1,7 @@
 
 import datetime
 from glob import glob
+import hashlib
 import inspect
 import json
 import multiprocessing as mp
@@ -214,6 +215,8 @@ class Config:
    def content(self):
       return self._config
 
+_cache_dir = (Path('~')/'.cache'/'esm_analysis').expanduser()
+_cache_dir.mkdir(parents=True, exist_ok=True)
 
 class RunDirectory:
 
@@ -276,9 +279,10 @@ class RunDirectory:
         self.dask_client = Client(client)
         self.prefix = prefix or ''
         self.variables = lookup(model_type)
-        info_file = op.join(str(run_dir), '.run_info.json')
+        run_dir = op.abspath(str(run_dir))
         nml_file = f90name_list or 'NAMELIST_{}*'.format(prefix)
-        if overwrite or not op.isfile(info_file):
+        info_file = self._hash_file(run_dir)
+        if overwrite or not info_file.is_file():
             self.name_list = {}
             for nml_file in Path(run_dir).rglob(nml_file):
                 try:
@@ -292,7 +296,7 @@ class RunDirectory:
             self.name_list['run_dir'] = op.abspath(str(run_dir))
             self.name_list['remap'] = False
             self.name_list['picklefile'] = None
-            self._dump_json()
+            self._dump_json(run_dir)
         else:
             with open(str(info_file), 'r') as f:
                 self.name_list = json.load(f)
@@ -300,8 +304,16 @@ class RunDirectory:
         if self.name_list['remap']:
            self.name_list['output'] = self._get_files(run_dir, filetype, remap=True)
            self.name_list['run_dir'] = run_dir
-           self._dump_json()
+           self._dump_json(run_dir)
         self._dataset = {}
+
+    @staticmethod
+    def _hash_file(run_dir):
+        run_dir = op.expanduser(str(run_dir))
+        hash_obj = hashlib.md5(op.abspath(run_dir).encode())
+        hash_str = str(hash_obj.hexdigest())
+        return _cache_dir / Path('run_info_{}.json'.format(hash_str))
+
 
     @staticmethod
     def _get_files(run_dir, extensions, remap=False):
@@ -466,11 +478,12 @@ class RunDirectory:
             self.name_list['remap'] = True
             self._dump_json(out_dir)
 
-    def _dump_json(self, run_dir=None):
-        run_dir = run_dir or Path(self.run_dir)
-        info_file = Path(run_dir) / '.run_info.json'
+    def _dump_json(self, run_dir):
+        run_dir = op.abspath(str(run_dir))
+        info_file = self._hash_file(run_dir)
         name_list = self.name_list
-        name_list['run_dir'] = str(run_dir)
+        name_list['run_dir'] = run_dir
+        name_list['json_file'] = str(info_file.absolute())
         with open(str(info_file), 'w') as f:
             json.dump(name_list, f, sort_keys=True, indent=4)
 
@@ -593,15 +606,26 @@ class RunDirectory:
         self._dataset = open_mfdataset(read_files, **kwargs)
         self._pickle_dataset()
 
+    def empty_cache(self):
+        """Empty cached data."""
+        try:
+            self._pickle_file.unlink()
+        except FileNotFoundError:
+            pass
+
+        self.name_list['picklefile'] = None
+
+    @property
+    def _pickle_file(self):
+        return Path(self.name_list['json_file']).with_suffix('.pkl')
+
     def _pickle_dataset(self):
        """Dump a pickle of a open dataset."""
-       _ = [f.unlink() for f in Path(self.run_dir).rglob('.*.pkl')]
-       with NamedTemporaryFile(dir=self.run_dir,
-                               suffix='.pkl',
-                               prefix='.', delete=False) as tmpfile:
-              cloudpickle.dump(self.dataset, tmpfile, protocol=4)
-              self.name_list['picklefile'] = tmpfile.name
-       self._dump_json()
+       self.empty_cache()
+       with open(str(self._pickle_file), 'wb') as pf:
+              cloudpickle.dump(self.dataset, pf, protocol=4)
+              self.name_list['picklefile'] = str(self._pickle_file)
+       self._dump_json(self.run_dir)
 
     def _get_files_from_glob_pattern(self, filenames):
         """Construct filename to read."""
