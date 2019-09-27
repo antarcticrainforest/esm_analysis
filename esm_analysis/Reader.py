@@ -13,22 +13,19 @@ import sys
 from tempfile import NamedTemporaryFile
 import warnings
 
-try:
-    from cdo import Cdo
-    cdo = Cdo()
-except FileNotFoundError:
-    cdo = {}
+from cdo import Cdo
 import cloudpickle
 import dask
 from dask.distributed import (as_completed, Client, progress, utils)
 from distributed.diagnostics.progressbar import (futures_of, is_kernel)
-
 import f90nml
 import numpy as np
 import pandas as pd
 import toml
 import tqdm
 from xarray import open_mfdataset
+
+from .cacheing import _cache_dir
 
 def _progress_bar(*futures, **kwargs):
     """Connect dask futures to tqdm progressbar."""
@@ -145,6 +142,11 @@ class GenericModel(dict):
 
 ECHAM = MPI
 
+try:
+    cdo = Cdo()
+except FileNotFoundError:
+    cdo = {}
+
 def lookup(setup):
    if setup is None:
        return GenericModel()
@@ -214,9 +216,6 @@ class Config:
    @property
    def content(self):
       return self._config
-
-_cache_dir = (Path('~')/'.cache'/'esm_analysis').expanduser()
-_cache_dir.mkdir(parents=True, exist_ok=True)
 
 class RunDirectory:
 
@@ -314,7 +313,6 @@ class RunDirectory:
         hash_str = str(hash_obj.hexdigest())
         return _cache_dir / Path('run_info_{}.json'.format(hash_str))
 
-
     @staticmethod
     def _get_files(run_dir, extensions, remap=False):
        """Get all netcdf filenames."""
@@ -340,7 +338,7 @@ class RunDirectory:
             remap_func = getattr(cdo, method)
         with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf:
             if infile.suffix != '.nc':
-                infile = cdo.copy(input=infile, output=tf.name, options = "-f nc4")
+                infile = cdo.copy(' '+str(infile), output=tf.name, options = "-f nc4")
             return remap_func('{} {}'.format(cdo_str, str(infile)), output=str(out_file))
 
     @property
@@ -460,7 +458,7 @@ class RunDirectory:
         args = (Path(out_dir), grid_description, weightfile, method)
         run_dir = self.name_list['run_dir']
         if files is None:
-            files = self.files
+            files = list(self.files.values)
         elif isinstance(files, (str, Path)):
            if not Path(files).is_file():
                files = sorted([f for f in Path(run_dir).rglob(files)])
