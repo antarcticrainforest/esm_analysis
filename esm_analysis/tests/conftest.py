@@ -6,14 +6,18 @@ import pytest
 
 from .mockdata import (create_grid, get_weights, write_file)
 
-@pytest.fixture(scope='session')
-def mock_timedir():
+def write_ncfiles(path, suffix='.nc'):
     import pandas as pd
     dates = pd.date_range(datetime.date.today(), periods=10, freq='1D')
+    for d in dates:
+        fname = 'test_{}Z{}'.format(d.strftime("%Y%m%d"), suffix)
+        write_file(Path(path) / fname, ('t_2m', 'pres_sfc'), 24, firststep=d, dt='1H')
+
+
+@pytest.fixture(scope='session')
+def mock_timedir():
     with TemporaryDirectory() as td:
-        for d in dates:
-            fname = 'test_{}Z.nc'.format(d.strftime("%Y%m%d"))
-            write_file(Path(td) / fname, ('t_2m', 'pres_sfc'), 24, firststep=d, dt='1H')
+        write_ncfiles(td)
         yield td
 
 @pytest.fixture(scope='module')
@@ -30,21 +34,29 @@ def mock_vardir():
 @pytest.fixture(scope='session')
 def mockgrid():
     """Create a mock grid file for regrdding."""
-    with NamedTemporaryFile() as tf:
+    with NamedTemporaryFile(suffix='.grid') as tf:
         create_grid(tf.name)
         yield tf.name
+
+@pytest.fixture(scope='session')
+def mock_grb_dir():
+    """Pretend to create grib files."""
+    with TemporaryDirectory() as td:
+        write_ncfiles(td, suffix='.grb')
+        yield td
+
+
 
 
 @pytest.fixture(scope='session')
 def mockweights():
-    with NamedTemporaryFile() as tf:
+    with NamedTemporaryFile(suffix='.nc') as tf:
         get_weights(tf.name)
         yield tf.name
 
 @pytest.fixture(scope='session')
-def mock_run(mockgrid, mock_timedir, mockweights):
-    from esm_analysis import RunDirectory
-    run = RunDirectory.gen_weights(mockgrid, mock_timedir, prefix='test', model_type='DWD',
+def mock_run(mockgrid, mock_timedir, mockweights, esm_analysis):
+    run = esm_analysis.RunDirectory.gen_weights(mockgrid, mock_timedir, prefix='test', model_type='DWD',
             infile=mockweights)
     yield run
 
@@ -53,6 +65,12 @@ def mock_tmpdir():
     with TemporaryDirectory() as td:
         yield td
 
+@pytest.fixture(scope='session')
+def esm_analysis():
+    import esm_analysis
+    with TemporaryDirectory() as cache_dir:
+        esm_analysis.cacheing._cache_dir = esm_analysis.Reader._cache_dir = Path(cache_dir)
+        yield esm_analysis
 
 @pytest.fixture
 def spec_hum():

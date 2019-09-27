@@ -6,7 +6,12 @@ from testpath import assert_isfile
 
 from .mockdata import (create_grid, get_weights, write_file)
 
+def test_clear_cache_dir(esm_analysis):
 
+    _cache_dir =  esm_analysis.cacheing._cache_dir
+    from pathlib import Path
+    esm_analysis.clear_cache_dir()
+    assert len([f for f in _cache_dir.rglob('*.*')]) == 0
 
 def test_write_file():
     import datetime
