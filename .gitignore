@@ -13,3 +13,4 @@ data
 /docs/_build/
 .ipynb_checkpoints/
 *dask-worker-space/
+.coverage.*
