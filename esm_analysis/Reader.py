@@ -1,6 +1,6 @@
 
+from copy import deepcopy
 import datetime
-from glob import glob
 import hashlib
 import inspect
 import json
@@ -13,21 +13,23 @@ import sys
 from tempfile import NamedTemporaryFile
 import warnings
 
-from cdo import Cdo
-import cloudpickle
+try:
+    from cdo import Cdo
+    cdo = Cdo()
+except FileNotFoundError:
+    cdo = {}
 import dask
 from dask.distributed import (as_completed, Client, progress, utils)
 from distributed.diagnostics.progressbar import (futures_of, is_kernel)
+
 import f90nml
 import numpy as np
 import pandas as pd
 import toml
 import tqdm
-from xarray import open_mfdataset
+import xarray as xr
 
-from .cacheing import _cache_dir
-
-def _progress_bar(*futures, **kwargs):
+def progress_bar(*futures, **kwargs):
     """Connect dask futures to tqdm progressbar."""
 
     notebook = kwargs.pop('notebook', None)
@@ -142,11 +144,6 @@ class GenericModel(dict):
 
 ECHAM = MPI
 
-try:
-    cdo = Cdo()
-except FileNotFoundError:
-    cdo = {}
-
 def lookup(setup):
    if setup is None:
        return GenericModel()
@@ -156,7 +153,7 @@ def lookup(setup):
       raise KeyError('Model output type not found')
    return LookupObj()
 
-__all__ = ['RunDirectory', 'lookup', 'Config', 'cdo', 'icon2datetime']
+__all__ = ['RunDirectory', 'lookup', 'Config', 'cdo', 'icon2datetime', 'progress_bar']
 
 
 def icon2datetime(icon_dates, start=None):
@@ -178,13 +175,29 @@ def icon2datetime(icon_dates, start=None):
         dates:  datetime objects
     """
 
+    try:
+        icon_dates = icon_dates.values
+    except AttributeError:
+        pass
+
+    try:
+        icon_dates = icon_dates[:]
+    except TypeError:
+        icon_dates = np.array([icon_dates])
     def convert(icon_date):
         frac_day, date = np.modf(icon_date)
         frac_day *= 60**2 * 24
         return datetime.datetime.strptime(str(int(date)), '%Y%m%d')\
                 + datetime.timedelta(seconds=int(frac_day.round(0)))
     conv = np.vectorize(convert)
-    return conv(icon_dates)
+    try:
+        out = conv(icon_dates)
+    except TypeError:
+        out = icon_dates
+    if len(out) == 1:
+        return pd.DatetimeIndex(out)[0]
+    else:
+        return pd.DatetimeIndex(out)
 
 
 class Config:
@@ -217,17 +230,19 @@ class Config:
    def content(self):
       return self._config
 
+_cache_dir = (Path('~')/'.cache'/'esm_analysis').expanduser()
+_cache_dir.mkdir(parents=True, exist_ok=True)
+
 class RunDirectory:
 
     weightfile = None
     griddes = None
-    _open_file = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
+        self.close_client()
 
     def __init__(self,
                  run_dir, *,
@@ -274,8 +289,10 @@ class RunDirectory:
             tasks for multiproccessing. By default (None) a local client will
             be started.
         '''
-
-        self.dask_client = Client(client)
+        if isinstance(client, Client):
+            self.dask_client = client
+        else:
+            self.dask_client = Client(client)
         self.prefix = prefix or ''
         self.variables = lookup(model_type)
         run_dir = op.abspath(str(run_dir))
@@ -293,18 +310,10 @@ class RunDirectory:
             self.name_list['weightfile'] = None
             self.name_list['gridfile'] = self.griddes
             self.name_list['run_dir'] = op.abspath(str(run_dir))
-            self.name_list['remap'] = False
-            self.name_list['picklefile'] = None
             self._dump_json(run_dir)
         else:
             with open(str(info_file), 'r') as f:
                 self.name_list = json.load(f)
-        # Sanity check
-        if self.name_list['remap']:
-           self.name_list['output'] = self._get_files(run_dir, filetype, remap=True)
-           self.name_list['run_dir'] = run_dir
-           self._dump_json(run_dir)
-        self._dataset = {}
 
     @staticmethod
     def _hash_file(run_dir):
@@ -313,37 +322,56 @@ class RunDirectory:
         hash_str = str(hash_obj.hexdigest())
         return _cache_dir / Path('run_info_{}.json'.format(hash_str))
 
+
     @staticmethod
-    def _get_files(run_dir, extensions, remap=False):
+    def _get_files(run_dir, extensions):
        """Get all netcdf filenames."""
        ext_str = ''.join(['[{}{}]'.format(l.lower(), l.upper()) for l in extensions])
-       if remap:
-          pat = re.compile('^(?!.*restart).*{}'.format(ext_str))
-       else:
-          pat = re.compile('^(?!.*restart|.*remap).*{}'.format(ext_str))
+       pat = re.compile('^(?!.*restart|.*remap).*{}'.format(ext_str))
        glob_pad = '*.{}'.format(ext_str)
        result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad) \
                              if re.match(pat, f.as_posix())])
        return result
 
     @staticmethod
-    def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None):
-        infile = Path(infile)
-        out_file = out_dir / infile.with_suffix('.nc').name
-        if method == 'weighted':
-            cdo_str = str(griddes)+','+str(weightfile)
-            remap_func = getattr(cdo, 'remap')
+    def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None, gridfile=None):
+        if isinstance(infile, (str, Path)):
+            infile = Path(infile)
+            out_file = out_dir / infile.with_suffix('.nc').name
         else:
-            cdo_str = str(griddes)
-            remap_func = getattr(cdo, method)
-        with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf:
-            if infile.suffix != '.nc':
-                infile = cdo.copy(' '+str(infile), output=tf.name, options = "-f nc4")
-            return remap_func('{} {}'.format(cdo_str, str(infile)), output=str(out_file))
+            out_file = None
+        with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf_in:
+
+            if method == 'weighted':
+                cdo_str = str(griddes)+','+str(weightfile)
+                remap_func = getattr(cdo, 'remap')
+            else:
+                cdo_str = str(griddes)
+                remap_func = getattr(cdo, method)
+            if gridfile is not None:
+                cdo_str += ' -setgrid,'+str(gridfile)
+
+            if isinstance(infile, xr.DataArray):
+                _ = xr.Dataset(data_vars={infile.name: infile}).to_netcdf(tf_in.name)
+                kwargs = dict(returnXArray=infile.name)
+                infile = Path(tf_in.name)
+            elif isinstance(infile, xr.Dataset):
+                _ = infile.to_netcdf(tf_in.name)
+                infile = Path(tf_in.name)
+                kwargs = dict(returnXDataset=True)
+            else:
+                kwargs = dict(output=str(out_file), options='-f nc4')
+            with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf:
+                if infile.suffix not in  ('.nc', '.nc4', '.cdf'):
+                    infile = cdo.copy(' '+str(infile), output=tf.name, options = "-f nc4")
+                try:
+                    return remap_func('{} {}'.format(str(cdo_str), str(infile)), **kwargs).compute()
+                except AttributeError:
+                    return remap_func('{} {}'.format(str(cdo_str), str(infile)), **kwargs)
 
     @property
     def run_dir(self):
-        return self.name_list['run_dir']
+        return Path(self.name_list['run_dir'])
 
     @property
     def files(self):
@@ -353,7 +381,6 @@ class RunDirectory:
                        mappable,
                        collection, *,
                        args=None,
-                       n_workers=None,
                        **kwargs):
        """Apply function to given collection.
 
@@ -373,43 +400,55 @@ class RunDirectory:
        args:
             additional arguments passed into the method
 
-       n_workers: int
-            Number of parallel proccess that are applied
-
        **kwargs: optional
             additional keyword arguments controlling the progress bar parameter
 
        Returns
        -------
 
-           output: combined output of the thread-pool processes
+           list: combined output of the thread-pool processes
        """
-       n_workers = n_workers or mp.cpu_count()
        args = args or ()
-       tasks = [(entry, *args) for entry in collection]
-       n_workers  = min(n_workers, len(tasks))
+       if isinstance(collection, (xr.DataArray, xr.Dataset)):
+           tasks = [(self.dask_client.scatter(collection), *args)]
+       else:
+           tasks = [(self.dask_client.scatter(entry), *args) for entry in collection]
        futures = [self.dask_client.submit(mappable, *task) for task in tasks]
-       _progress_bar(futures, **kwargs)
+       progress_bar(futures, **kwargs)
        output = self.dask_client.gather(futures)
-
+       if len(output) == 1: # Possibly only one job was submitted
+           return output[0]
        return output
 
-    def close(self):
+    def close_client(self):
        """Close the opened dask client."""
        try:
            self.dask_client.close()
        except AttributeError:
            pass
 
+    def restart_client(self):
+       """Restart the opened dask client."""
+       try:
+           self.dask_client.restart()
+       except AttributeError:
+           pass
+
+    @property
+    def status(self):
+        """Query the status of the dask client."""
+        try:
+            return self.dask_client.status
+        except AttributeError:
+            return None
 
     def remap(self,
-              grid_description, *,
-              n_workers=None,
-              out_dir=None,
-              files=None,
+              grid_description,
+              inp=None,
+              out_dir=None,*,
               method='weighted',
-              weightfile=None
-              ):
+              weightfile=None,
+              grid_file=None):
         """Regrid to a different input grid.
 
         ::
@@ -420,17 +459,12 @@ class RunDirectory:
         ----------
         grid_description: str
                           Path to file containing the output grid description
-
-        n_workers: int (default: num of cpu's)
-                    Number of parallel processes that remap input files
-
+        inp: (collection of) str, xarray.Dataset, xarray.DataArray
+                Filenames that are to be remapped.
+        out_dir: str (default: None)
+                  Directory name for the output
         weight_file: str (default: None)
                      Path to file containing grid weights
-
-        out_dir: str (default: lonlat)
-                  Directory name for the output
-        files: str, collection (default : all datafiles)
-                Filenames that are to be remapped.
         method: str (default: weighted)
                  Remap method that is applyied to the data, can be either
                  weighted (default), bil, con, laf, nn. Not if weighted is chosen
@@ -439,11 +473,15 @@ class RunDirectory:
         weightfile: str (default: None)
                      File containing the weights for the distance weighted
                      remapping.
+        grid_file: str (default: None)
+                  file containing the source grid describtion
 
+        Returns
+        -------
+        (collection of) str, xarray.Dataset, xarray.DataArray
         """
-        n_workers = n_workers or mp.cpu_count()
-        out_dir = out_dir or Path(self.run_dir) / 'remap_grid'
-        Path(out_dir).absolute().mkdir(exist_ok=True)
+        out_dir = out_dir or Path('/tmp')
+        Path(out_dir).absolute().mkdir(exist_ok=True, parents=True)
         impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf', 'remapnn')
         weightfile = weightfile or self.weightfile
         if method not in impl_methods:
@@ -455,26 +493,21 @@ class RunDirectory:
                             ' by providing a weightfile or generate a weightfile'
                             ' by calling the gen_weights methods')
 
-        args = (Path(out_dir), grid_description, weightfile, method)
+        args = (Path(out_dir), grid_description, weightfile, method, grid_file)
         run_dir = self.name_list['run_dir']
-        if files is None:
-            files = list(self.files.values)
-        elif isinstance(files, (str, Path)):
-           if not Path(files).is_file():
-               files = sorted([f for f in Path(run_dir).rglob(files)])
+        if inp is None:
+            inp = self.files
+        elif isinstance(inp, (str, Path)):
+           if not Path(inp).is_file():
+               inp = sorted([f for f in Path(run_dir).rglob(inp)])
            else:
-               files = (files, )
-        if len(files) == 0:
+               inp = (inp, )
+        if len(inp) == 0:
             raise FileNotFoundError('No files for remapping found')
-        grid_files = self.apply_function(self._remap, files,
-                                         args=args,
-                                         n_workers=n_workers,
-                                         label='Remapping')
+        return self.apply_function(self._remap, inp,
+                                   args=args,
+                                   label='Remapping')
 
-        if not isinstance(grid_files, int):
-            self.name_list['output'] = sorted(grid_files)
-            self.name_list['remap'] = True
-            self._dump_json(out_dir)
 
     def _dump_json(self, run_dir):
         run_dir = op.abspath(str(run_dir))
@@ -552,13 +585,12 @@ class RunDirectory:
                    client=client)
 
     def load_data(self, filenames=None,
-                  overwrite=False,
                   **kwargs):
         """Open a multifile dataset using xrarray open_mfdataset.
 
         ::
 
-           run.load_data('*2008*.nc')
+           dset = run.load_data('*2008*.nc')
 
         Parameters
         ----------
@@ -566,77 +598,31 @@ class RunDirectory:
             collection of filenames, filename or glob pattern for filenames
             that should be read. Default behavior is reading all dataset files
 
-        overwrite: bool, optional (default : False)
-            For faster access datasets are serialized and stored in pickle files
-            after beeing loaded, this drastically speeds up read datasets
-            consecutive times. If overwrite is set True the data will be read
-            from netcdf-files regardless.
-
         **kwargs: optional
             Additional keyword arguments passed to xarray's open_mfdataset
+
+        Returns
+        -------
+        xarray dataset
         """
-
-        if overwrite or self.name_list['picklefile'] is None:
-          self._load_data(filenames, kwargs)
-        try:
-          with open(str(self.name_list['picklefile']), 'rb') as f:
-             self._dataset = cloudpickle.load(f)
-        except :
-          self._load_data(filenames, kwargs)
-
-
-    @property
-    def is_remapped(self):
-        return self.name_list['remap']
-
-    def _load_data(self, filenames, kwargs):
-        """Load datasets for given filenames."""
-
-        if filenames is None:
-           read_files = self.files
-        else:
-          read_files = self._get_files_from_glob_pattern(filenames)
-
-        self._open_file = read_files
-
+        filenames = self._get_files_from_glob_pattern(filenames) or self.files
         kwargs.setdefault('parallel',  True)
         kwargs.setdefault('combine', 'by_coords')
-        self._dataset = open_mfdataset(read_files, **kwargs)
-        self._pickle_dataset()
-
-    def empty_cache(self):
-        """Empty cached data."""
-        try:
-            self._pickle_file.unlink()
-        except FileNotFoundError:
-            pass
-
-        self.name_list['picklefile'] = None
-
-    @property
-    def _pickle_file(self):
-        return Path(self.name_list['json_file']).with_suffix('.pkl')
-
-    def _pickle_dataset(self):
-       """Dump a pickle of a open dataset."""
-       self.empty_cache()
-       with open(str(self._pickle_file), 'wb') as pf:
-              cloudpickle.dump(self.dataset, pf, protocol=4)
-              self.name_list['picklefile'] = str(self._pickle_file)
-       self._dump_json(self.run_dir)
+        return xr.open_mfdataset(filenames, **kwargs)
 
     def _get_files_from_glob_pattern(self, filenames):
         """Construct filename to read."""
-        if isinstance(filenames, str):
+
+        if isinstance(filenames, (str, Path)):
             ncfiles = [filenames,]
+        elif filenames is None:
+            return None
         else:
            ncfiles = list(filenames)
         read_files = []
-
         for in_file in ncfiles:
-          read_files += glob(op.join(self.run_dir, op.basename(in_file)))
+            if op.isfile(in_file):
+                read_files.append(str(in_file))
+            else:
+                read_files += [str(f) for f in self.run_dir.rglob(str(in_file))]
         return sorted(read_files)
-
-    @property
-    def dataset(self):
-       return self._dataset
