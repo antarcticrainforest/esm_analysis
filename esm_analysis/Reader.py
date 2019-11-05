@@ -172,7 +172,7 @@ def icon2datetime(icon_dates, start=None):
     Returns
     -------
 
-        dates:  datetime objects
+        dates:  pd.Datetime
     """
 
     try:
@@ -406,7 +406,7 @@ class RunDirectory:
        Returns
        -------
 
-           list: combined output of the thread-pool processes
+          combined output of the thread-pool processes: collection
        """
        args = args or ()
        if isinstance(collection, (xr.DataArray, xr.Dataset)):
@@ -478,7 +478,7 @@ class RunDirectory:
 
         Returns
         -------
-        (collection of) str, xarray.Dataset, xarray.DataArray
+        Collection of same type as input: (str, xarray.DataArray, xarray.Dataset)
         """
         out_dir = out_dir or Path('/tmp')
         Path(out_dir).absolute().mkdir(exist_ok=True, parents=True)
@@ -603,7 +603,7 @@ class RunDirectory:
 
         Returns
         -------
-        xarray dataset
+        Xarray (multi-file) dataset: xarray.Dataset
         """
         filenames = self._get_files_from_glob_pattern(filenames) or self.files
         kwargs.setdefault('parallel',  True)

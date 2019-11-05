@@ -29,12 +29,13 @@ the experiment.
 
         Apply a given function to the dataset via the dask scheduling client
 
-    .. automethod:: close
+    .. automethod:: close_client
 
-    .. attribute:: is_remapped
+    .. automethod:: restart_client
 
-        Retruns true or fals whether or not the dataset has been remapped by the the
-        remapped method
+    .. attribute: status
+
+        Returns the status of the associated dask worker client
 
     .. automethod:: remap
 
