@@ -78,17 +78,17 @@ def write_file(filename, variables, ntimesteps, firststep=None, dt='10min'):
     firststep = firststep or datetime.datetime.now()
     timesteps = pd.date_range(start=firststep, periods=ntimesteps, 
             freq=dt)
-    daysfrac = [float(ts.strftime('%Y%m%d')) + \
-            (ts - datetime.datetime(ts.year, ts.month, ts.day)).total_seconds() / (24.*60**2) for ts in timesteps]
+    ref_time = pd.Timestamp(1970,1,1,0,0,0)
+    times = (pd.DatetimeIndex(timesteps) - ref_time).total_seconds()
 
     with h5netcdf.File(filename, 'w') as f:
         f.dimensions = dict(
                 ncells=512)
-        f.dimensions['time'] = len(daysfrac)
+        f.dimensions['time'] = len(times)
 
         time = f.create_variable('time', ('time',), float)
-        f['time'][:] = np.array(daysfrac)
-        f['time'].attrs['units'] = 'day as %Y%m%d.%f'
+        f['time'][:] = times.astype('i')
+        f['time'].attrs['units'] = 'Seconds since 1970-01-01 00:00:00'
         f['time'].attrs['long_name'] = 'Time'
         f['time'].attrs['axis'] = 'T'
         f['time'].attrs['CDI_grid_type'] = 'unstructured'
