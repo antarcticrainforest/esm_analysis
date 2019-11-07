@@ -377,10 +377,11 @@ class RunDirectory:
     def files(self):
         return pd.Series(self.name_list['output'])
 
-    def apply_function(self,
-                       mappable,
+    @staticmethod
+    def apply_function(mappable,
                        collection, *,
                        args=None,
+                       client=None,
                        **kwargs):
        """Apply function to given collection.
 
@@ -400,6 +401,10 @@ class RunDirectory:
        args:
             additional arguments passed into the method
 
+       client: dask distributed client (default: None)
+            worker scheduler client that submits the jobs. If None is given
+            a new client is started
+
        **kwargs: optional
             additional keyword arguments controlling the progress bar parameter
 
@@ -408,14 +413,16 @@ class RunDirectory:
 
           combined output of the thread-pool processes: collection
        """
+
+       client = client or Client()
        args = args or ()
        if isinstance(collection, (xr.DataArray, xr.Dataset)):
-           tasks = [(self.dask_client.scatter(collection), *args)]
+           tasks = [(client.scatter(collection), *args)]
        else:
-           tasks = [(self.dask_client.scatter(entry), *args) for entry in collection]
-       futures = [self.dask_client.submit(mappable, *task) for task in tasks]
+           tasks = [(client.scatter(entry), *args) for entry in collection]
+       futures = [client.submit(mappable, *task) for task in tasks]
        progress_bar(futures, **kwargs)
-       output = self.dask_client.gather(futures)
+       output = client.gather(futures)
        if len(output) == 1: # Possibly only one job was submitted
            return output[0]
        return output
@@ -506,8 +513,8 @@ class RunDirectory:
             raise FileNotFoundError('No files for remapping found')
         return self.apply_function(self._remap, inp,
                                    args=args,
+                                   client=self.dask_client,
                                    label='Remapping')
-
 
     def _dump_json(self, run_dir):
         run_dir = op.abspath(str(run_dir))
