@@ -22,6 +22,16 @@ def mock_client():
 def mock_timedir():
     with TemporaryDirectory() as td:
         write_ncfiles(td)
+        with open(str(Path(td) / 'NAMELIST_test_testing.nml'), 'w') as f:
+            f.write("""
+&config
+    input = 'wind.nc'
+    steps = 432
+    layout = 8, 16
+    visc = 1.0e-4
+    use_biharmonic = .false.
+/
+""")
         yield td
 
 @pytest.fixture(scope='module')

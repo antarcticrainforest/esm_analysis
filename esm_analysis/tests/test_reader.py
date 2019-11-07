@@ -28,14 +28,21 @@ def test_load_empty_data(mock_tmpdir, mockgrid, mockweights):
             pass
 
 def test_load_data(mock_timedir):
+    from esm_analysis.Reader import GenericModel
     with RunDirectory(mock_timedir, prefix='test', model_type='DWD') as run:
         # At first not data should be loaded only information gathered
         assert len(run.files) == 10
         assert run.weightfile == None
+        assert run.name_list['config']['input'] == 'wind.nc'
         # Now load the data
         run.dataset = run.load_data()
         assert (run.variables['tas'] in run.dataset.keys()) == True
         assert run.dataset[run.variables['tas']].shape == (240, 512)
+    with RunDirectory(mock_timedir, f90name_list=('blabla')) as run:
+        assert type(run.variables) == GenericModel
+        assert run.variables['pr'] == 'pr'
+        assert run.variables.pr == 'pr'
+
 def test_gen_weights(mock_vardir, mockgrid, mockweights, mock_client):
     with RunDirectory.gen_weights(mockgrid, mock_vardir, prefix='test',
             infile=mockweights, overwrite=True, client=mock_client) as run:
@@ -56,10 +63,15 @@ def test_weighted_remap(mock_run, mockgrid, mock_timedir, mockweights, mock_tmpd
     out_files = mock_run.remap(mockgrid,
                                out_dir=mock_tmpdir,
                                grid_file=mockweights)
+
     # Loading the a second time without the overwrite kwargs should have no effect
     remap_dataset = mock_run.load_data(out_files)
     assert remap_dataset['t_2m'].shape == (240, 4, 64)
     mock_run.dataset = remap_dataset
+    single_remap = mock_run.remap(mockgrid, mock_run.files[0],
+            out_dir=mock_tmpdir, grid_file=mockweights)
+    single_dset = mock_run.load_data(single_remap)
+    assert single_dset['t_2m'].shape == (24, 4, 64)
 
 def test_other_remap(mock_timedir, mockgrid, mock_tmpdir, mock_client):
     from pathlib import Path
@@ -122,7 +134,8 @@ def test_lookup():
 def test_config(model_setup_with_config, model_setup_without_config):
     import pandas
     conf_with = Config(model_setup_with_config)
-    assert type(conf_with.setup) == pandas.DataFrame
-
     conf_without = Config(model_setup_without_config)
-    assert type(conf_without.setup) == type(conf_without.content) == dict
+    assert type(conf_without.setup) == type(conf_without.setup) == pandas.DataFrame
+    assert len(conf_without.setup) == 0
+    assert conf_with.__repr__() == conf_with._table.__repr__()
+    assert type(conf_with._repr_html_()) == str

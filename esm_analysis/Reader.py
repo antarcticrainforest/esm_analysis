@@ -201,7 +201,29 @@ def icon2datetime(icon_dates, start=None):
 
 
 class Config:
+   '''Configuration Object to save model setups.'''
    def __init__(self, toml_config_file):
+      '''Load a configuration.
+
+      ::
+            model_setup = Config('model_setup.toml')
+
+      Read a toml configuration file and save the config for access into
+      a pandas dataframe. The configuration in the toml file must be saved
+      under the 'config' key.
+
+      Parameters
+      ----------
+
+       toml_config_file : str
+                          File name of the toml configuration file.
+                          The configuration must be saved under the 'config'
+                          key in the toml file.
+     Returns
+     -------
+
+      Data Frame of containing model stups: pandas.core.frame.DataFrame
+      '''
 
       self._config = toml.load(toml_config_file)
       try:
@@ -209,26 +231,17 @@ class Config:
                                     index=self._config['config'].keys(),
                                     columns=['Description'])
       except KeyError:
-         self._table = {}
+         self._table = pd.DataFrame({})
 
    def __repr__(self):
-        a = self._table.__repr__()
-        return a
+        return self._table.__repr__()
 
    def _repr_html_(self):
-        try:
-           a = self._table.style
-        except AttributeError:
-           return
-        return a._repr_html_()
+        return self._table.style._repr_html_()
 
    @property
    def setup(self):
-      return self._table
-
-   @property
-   def content(self):
-      return self._config
+       return self._table
 
 _cache_dir = (Path('~')/'.cache'/'esm_analysis').expanduser()
 _cache_dir.mkdir(parents=True, exist_ok=True)
@@ -253,7 +266,6 @@ class RunDirectory:
                  filetype='nc',
                  client=None):
         '''Create an RunDirecotry object from a given input directory.
-
         ::
 
             run = RunDirectory('/work/mh0066/precip-project/3-hourly/CMORPH')
@@ -272,10 +284,10 @@ class RunDirectory:
             filname prefix
         model_type: str, optional (default: None)
             model name/ observation porduct that created the data. This will
-            be used to generate a variable lookup table. If None is given
-            (default) then no lookup table will be generated. This can be useful
+            be used to generate a variable lookup table. This can be useful
             for loading various model datasets and comparing them while only
-            accessing the data with one set of variable names.
+            accessing the data with one set of variable names. By default
+            no lookupt table will be generated.
         overwrite: bool, optional (default : False)
             If true the meta data will be generated again even if it has been
             stored to disk already.
@@ -334,7 +346,8 @@ class RunDirectory:
        return result
 
     @staticmethod
-    def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None, gridfile=None):
+    def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None, gridfile=None, options=None):
+        options = options or '-f nc4'
         if isinstance(infile, (str, Path)):
             infile = Path(infile)
             out_file = out_dir / infile.with_suffix('.nc').name
@@ -360,14 +373,13 @@ class RunDirectory:
                 infile = Path(tf_in.name)
                 kwargs = dict(returnXDataset=True)
             else:
-                kwargs = dict(output=str(out_file), options='-f nc4')
-            with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf:
-                if infile.suffix not in  ('.nc', '.nc4', '.cdf'):
-                    infile = cdo.copy(' '+str(infile), output=tf.name, options = "-f nc4")
-                try:
-                    return remap_func('{} {}'.format(str(cdo_str), str(infile)), **kwargs).compute()
-                except AttributeError:
-                    return remap_func('{} {}'.format(str(cdo_str), str(infile)), **kwargs)
+                kwargs = dict(output=str(out_file), options=options)
+
+            out = remap_func('{} {}'.format(str(cdo_str), str(infile)), **kwargs)
+            try:
+                return out.compute()
+            except AttributeError:
+                return out
 
     @property
     def run_dir(self):
@@ -449,6 +461,7 @@ class RunDirectory:
               out_dir=None,*,
               method='weighted',
               weightfile=None,
+              options='-f nc4',
               grid_file=None):
         """Regrid to a different input grid.
 
@@ -476,6 +489,8 @@ class RunDirectory:
                      remapping.
         grid_file: str (default: None)
                   file containing the source grid describtion
+        options: str (default: -f nc4)
+                 additional file options that are passed to cdo
 
         Returns
         -------
@@ -494,7 +509,7 @@ class RunDirectory:
                             ' by providing a weightfile or generate a weightfile'
                             ' by calling the gen_weights methods')
 
-        args = (Path(out_dir), grid_description, weightfile, method, grid_file)
+        args = (Path(out_dir), grid_description, weightfile, method, grid_file, options)
         run_dir = self.name_list['run_dir']
         if inp is None:
             inp = self.files
