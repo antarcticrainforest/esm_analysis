@@ -450,10 +450,7 @@ class RunDirectory:
     @property
     def status(self):
         """Query the status of the dask client."""
-        try:
-            return self.dask_client.status
-        except AttributeError:
-            return None
+        return self.dask_client.status
 
     def remap(self,
               grid_description,

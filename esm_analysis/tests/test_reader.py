@@ -5,7 +5,7 @@ import numpy as np
 from testpath import assert_isfile
 from unittest import mock
 
-from esm_analysis import (Config, icon2datetime, lookup, RunDirectory)
+from esm_analysis import (Config, icon2datetime, lookup, RunDirectory, progress_bar)
 
 def test_icon2datetime(mock_dataset):
     import pandas as pd
@@ -105,6 +105,10 @@ def test_client(mock_run, mock_client):
     assert mock_run.status == 'closed'
     mock_run.dask_client = mock_client
 
+def test_progress_bar(mock_client):
+    future = mock_client.submit(lambda: 2*6)
+    progress_bar(future)
+    assert future.result() == 12
 
 def test_apply_function(mock_run, mock_client):
     apply_func = lambda dset, varn: dset[varn].min().values
@@ -129,7 +133,6 @@ def test_lookup():
 
     with pytest.raises(KeyError):
         lookup('BALBLA')
-
 
 def test_config(model_setup_with_config, model_setup_without_config):
     import pandas
