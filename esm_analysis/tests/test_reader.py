@@ -86,10 +86,10 @@ def test_other_remap(mock_timedir, mockgrid, mock_tmpdir, mock_client):
         remap_dset = run.remap(mockgrid, dset['t_2m'], method='remapbil')
         assert isinstance(remap_dset, xr.DataArray) == True
 
-def test_apply_function(mock_run):
+def test_apply_function(mock_run, mock_client):
     apply_func = lambda dset, varn: dset[varn].min().values
     max_vals = mock_run.apply_function(apply_func, (mock_run.dataset, mock_run.dataset),
-                                       args=('t_2m', ))
+                                       args=('t_2m', ), client=mock_client)
     assert len(max_vals) == 2
     assert np.allclose(max_vals, 0) == True
     with pytest.raises(KeyError):
