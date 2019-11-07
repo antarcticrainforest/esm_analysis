@@ -36,11 +36,7 @@ def progress_bar(*futures, **kwargs):
     multi = kwargs.pop('multi', True)
     complete = kwargs.pop('complete', True)
     bar_title = kwargs.pop('label', 'Progress')
-
     futures = futures_of(futures)
-    if not isinstance(futures, (set, list)):
-        futures = [futures]
-
     kwargs.setdefault('total', len(futures))
     kwargs.setdefault('unit', 'it')
     kwargs.setdefault('unit_scale', True)
@@ -313,11 +309,8 @@ class RunDirectory:
         if overwrite or not info_file.is_file():
             self.name_list = {}
             for nml_file in Path(run_dir).rglob(nml_file):
-                try:
-                    self.name_list = {**self.name_list,
-                                      **f90nml.read(str(run_dir/ nml_file))}
-                except (FileNotFoundError, IsADirectoryError):
-                    pass
+                self.name_list = {**self.name_list,
+                                  **f90nml.read(str(run_dir/ nml_file))}
             self.name_list['output'] = self._get_files(run_dir, filetype)
             self.name_list['weightfile'] = None
             self.name_list['gridfile'] = self.griddes
