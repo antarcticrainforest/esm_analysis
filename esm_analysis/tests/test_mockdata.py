@@ -1,6 +1,6 @@
 from tempfile import (NamedTemporaryFile, TemporaryDirectory)
 
-from h5netcdf import File
+from netCDF4 import Dataset as nc
 import pytest
 from testpath import assert_isfile
 
@@ -25,7 +25,7 @@ def test_write_file():
             fname = 'test_{}Z.nc'.format(d.strftime("%Y%m%d"))
             write_file(Path(td) / fname, ('t_2m', 'pres_sfc'), 24, firststep=d, dt='1H')
 
-        ncfiles = [File(str(p)) for p in Path(td).rglob('*.nc')]
+        ncfiles = [nc(str(p)) for p in Path(td).rglob('*.nc')]
         assert len(ncfiles) == 10
         vars = sorted([list(f.variables.keys()) for f in ncfiles])
         assert len(np.unique(vars)) == 3
@@ -38,10 +38,9 @@ def test_get_weigths():
     with NamedTemporaryFile() as tf:
         get_weights(tf.name)
 
-        with File(tf.name) as f:
-            assert f.dimensions == dict(ncells=512,
-                                       nv=3,
-                                       bnds=2,
-                                       time=1,
-                                       level=1)
+        with nc(tf.name) as f:
+            dims = dict(ncells=512, nv=3, bnds=2, time=1, level=1)
+            assert sorted(f.dimensions.keys()) == sorted(dims.keys())
+            for dim, size in dims.items():
+                assert len(f.dimensions[dim]) == size
             assert ('o3' in f.variables.keys()) == True
