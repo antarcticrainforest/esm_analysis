@@ -429,17 +429,11 @@ class RunDirectory:
 
     def close_client(self):
        """Close the opened dask client."""
-       try:
-           self.dask_client.close()
-       except AttributeError:
-           pass
+       self.dask_client.close()
 
     def restart_client(self):
        """Restart the opened dask client."""
-       try:
-           self.dask_client.restart()
-       except AttributeError:
-           pass
+       self.dask_client.restart()
 
     @property
     def status(self):
