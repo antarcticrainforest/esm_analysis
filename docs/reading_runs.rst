@@ -29,8 +29,6 @@ the experiment.
 
         Apply a given function to the dataset via the dask scheduling client
 
-    .. automethod:: close
-
     .. attribute:: is_remapped
 
         Retruns true or fals whether or not the dataset has been remapped by the the
