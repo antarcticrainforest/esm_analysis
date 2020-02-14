@@ -13,11 +13,25 @@ def write_ncfiles(path, suffix='.nc'):
         fname = 'test_{}Z{}'.format(d.strftime("%Y%m%d"), suffix)
         write_file(Path(path) / fname, ('t_2m', 'pres_sfc'), 24, firststep=d, dt='1H')
 
+@pytest.fixture(scope='function')
+def mock_client():
+    from dask.distributed import Client
+    yield Client()
 
 @pytest.fixture(scope='session')
 def mock_timedir():
     with TemporaryDirectory() as td:
         write_ncfiles(td)
+        with open(str(Path(td) / 'NAMELIST_test_testing.nml'), 'w') as f:
+            f.write("""
+&config
+    input = 'wind.nc'
+    steps = 432
+    layout = 8, 16
+    visc = 1.0e-4
+    use_biharmonic = .false.
+/
+""")
         yield td
 
 @pytest.fixture(scope='module')
@@ -59,6 +73,11 @@ def mock_run(mockgrid, mock_timedir, mockweights, esm_analysis):
     run = esm_analysis.RunDirectory.gen_weights(mockgrid, mock_timedir, prefix='test', model_type='DWD',
             infile=mockweights)
     yield run
+
+@pytest.fixture(scope='session')
+def mock_dataset(mock_timedir):
+    import xarray as xr
+    yield xr.open_mfdataset(str(Path(mock_timedir) / '*.nc'), combine='by_coords')
 
 @pytest.fixture(scope='session')
 def mock_tmpdir():
