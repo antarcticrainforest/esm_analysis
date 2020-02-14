@@ -1,20 +1,21 @@
 [![Build Status](https://api.travis-ci.com/antarcticrainforest/esm_analysis.svg?branch=master)](https://travis-ci.com/antarcticrainforest/esm_analysis)
 [![codecov](https://codecov.io/gh/antarcticrainforest/esm_analysis/branch/master/graph/badge.svg)](https://codecov.io/gh/antarcticrainforest/esm_analysis)
 
-Python 3 tools for reading, analysing net-cdf based climate data.
+Python 3 tools for reading, analysing net-cdf based climate data. `esm_analysis` stands for Earth System Model Analysis (Library)
 
 
 Installing
 ==========
 
-`esm_analysis` stands for Earth System Model Analysis (Library) and is currently
-only available via a pre defined Anaconda installation on Mistral:
+The latest (master) version of the code can be installed using ```pip```:
 
-    . "/mnt/lustre01/work/mh0287/m300765/anaconda3/etc/profile.d/conda.sh"
-
+```
+pip install git+https://github.com/antarcticrainforest/esm_analysis.git
+```
+    
 
 The project is in alpha stage jet, there are many features missing and the ones
-that that have been implemented are have probably errors. Hence you're
+that have been implemented have probably errors. Still, you're
 encouraged to report bugs or request new features.
 
 
