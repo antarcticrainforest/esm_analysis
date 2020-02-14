@@ -16,6 +16,7 @@ output data from global storm resolving simulations at the
 
 Installation
 ------------
+
 The crrent master branch can be installed from the GitHub repository::
 
     pip install git+https://github.com/antarcticrainforest/esm_analysis.git
