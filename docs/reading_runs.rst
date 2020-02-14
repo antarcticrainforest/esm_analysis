@@ -33,6 +33,7 @@ the experiment.
 
     .. automethod:: restart_client
 
+
     .. attribute: status
 
         Returns the status of the associated dask worker client
