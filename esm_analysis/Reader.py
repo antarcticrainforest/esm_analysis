@@ -32,6 +32,8 @@ import xarray as xr
 def progress_bar(*futures, **kwargs):
     """Connect dask futures to tqdm progressbar."""
 
+    from .utils import (ProgressBar, NotebookProgress)
+
     notebook = kwargs.pop('notebook', None)
     multi = kwargs.pop('multi', True)
     complete = kwargs.pop('complete', True)
@@ -45,8 +47,10 @@ def progress_bar(*futures, **kwargs):
     if notebook is None:
         notebook = is_kernel()  # often but not always correct assumption
 
-    progress = tqdm.tqdm_notebook if notebook else tqdm.tqdm
-    _ = list(progress(as_completed(futures), **kwargs))
+    #progress = tqdm.tqdm_notebook if notebook else tqdm.tqdm
+    #_ = list(progress(as_completed(futures), **kwargs))
+    progress = ProgressBar if notebook else NotebookProgress
+    return progress(futures, **kwargs)
 
 
 class _BaseVariables(dict):

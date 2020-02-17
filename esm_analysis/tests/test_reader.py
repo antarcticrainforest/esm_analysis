@@ -107,7 +107,10 @@ def test_client(mock_run, mock_client):
 
 def test_progress_bar(mock_client):
     future = mock_client.submit(lambda: 2*6)
-    progress_bar(future)
+    progress_bar(future, notebook=False)
+    assert future.result() == 12
+    future = mock_client.submit(lambda: 2*6)
+    progress_bar(future, notebook=True)
     assert future.result() == 12
 
 def test_apply_function(mock_run, mock_client):
