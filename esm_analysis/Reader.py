@@ -30,11 +30,38 @@ import tqdm
 import xarray as xr
 
 def progress_bar(*futures, **kwargs):
-    """Connect dask futures to tqdm progressbar."""
+    """Connect dask futures to tqdm progressbar.
+
+    The probress_bar method gives you the ability to get some feedback while
+    processing data.
+
+    ::
+
+        from dask.distributed import Client
+        dask_client = Client()
+        futures = dask_client.map(lambda x: x*2, [0, 2, 4, 6])
+        progress_bar(futures)
+        Progress: 100%|████████████| 4.00/4.00 [00:00<00:00, 487it/s]
+        results = dask_client.gather(results)
+
+    Parameters
+    ----------
+
+    futures: collection
+        collections of (dask, concurrent) futures
+
+    notebook: bool, optional (default: False)
+        whether or not to display a progress bar optimized for jupyter notebooks
+
+    bar_title: str, optional (default: Progress)
+        Title of the progress bar
+
+    kwargs:
+        Additional keyword arguments passed to the tqdm object
+
+    """
 
     notebook = kwargs.pop('notebook', None)
-    multi = kwargs.pop('multi', True)
-    complete = kwargs.pop('complete', True)
     bar_title = kwargs.pop('label', 'Progress')
     futures = futures_of(futures)
     kwargs.setdefault('total', len(futures))
