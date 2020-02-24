@@ -1,5 +1,4 @@
 
-from copy import deepcopy
 import datetime
 import hashlib
 import inspect
@@ -11,14 +10,12 @@ from pathlib import Path
 import re
 import sys
 from tempfile import NamedTemporaryFile
-import warnings
 
 try:
     from cdo import Cdo
     cdo = Cdo()
 except FileNotFoundError:
     cdo = {}
-import dask
 from dask.distributed import (as_completed, Client, progress, utils)
 from distributed.diagnostics.progressbar import (futures_of, is_kernel)
 
@@ -31,7 +28,6 @@ import xarray as xr
 
 def progress_bar(*futures, **kwargs):
     """Connect dask futures to tqdm progressbar.
-
     The probress_bar method gives you the ability to get some feedback while
     processing data.
 
@@ -224,9 +220,9 @@ def icon2datetime(icon_dates, start=None):
 
 
 class Config:
-   '''Configuration Object to save model setups.'''
+   """Configuration Object to save model setups."""
    def __init__(self, toml_config_file):
-      '''Load a configuration.
+      """Load a configuration.
 
       ::
             model_setup = Config('model_setup.toml')
@@ -246,7 +242,7 @@ class Config:
      -------
 
       Data Frame of containing model stups: pandas.core.frame.DataFrame
-      '''
+      """
 
       self._config = toml.load(toml_config_file)
       try:
@@ -288,7 +284,7 @@ class RunDirectory:
                  f90name_list=None,
                  filetype='nc',
                  client=None):
-        '''Create an RunDirecotry object from a given input directory.
+        """Create an RunDirecotry object from a given input directory.
         ::
 
             run = RunDirectory('/work/mh0066/precip-project/3-hourly/CMORPH')
@@ -323,7 +319,7 @@ class RunDirectory:
             Configuration that is used the create a dask client which recieves
             tasks for multiproccessing. By default (None) a local client will
             be started.
-        '''
+        """
         if isinstance(client, Client):
             self.dask_client = client
         else:
