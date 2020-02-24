@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -z "$STATUS" ];then
+    exit 0
+fi
+#Mock version of squeue
+echo -e "JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+$JOB_ID   compute test  user $STATUS       0:00      2 None"

@@ -14,6 +14,20 @@ def write_ncfiles(path, suffix='.nc'):
         write_file(Path(path) / fname, ('t_2m', 'pres_sfc'), 24, firststep=d, dt='1H')
 
 @pytest.fixture(scope='function')
+def mock_slurm(monkeypatch):
+    import os
+    this_dir = os.path.abspath(os.path.dirname(__file__))
+    PATH = os.path.join(this_dir, 'mockcmds')
+    monkeypatch.setenv("JOB_ID", "19628442")
+    monkeypatch.setenv("STATUS", 'PD')
+    monkeypatch.setenv("PATH", PATH, prepend=os.pathsep)
+
+@pytest.fixture(scope='session')
+def mock_workdir():
+    with TemporaryDirectory() as td:
+        yield td
+
+@pytest.fixture(scope='function')
 def mock_client():
     from dask.distributed import Client
     yield Client()

@@ -29,6 +29,7 @@ Contents
 
    reading_runs
    calculator
+   create_cluster
 
 .. toctree::
     :caption: Examples:

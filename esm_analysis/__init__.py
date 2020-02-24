@@ -3,8 +3,9 @@ from pathlib import Path
 from .Reader import *
 from .Calculator import *
 from .cacheing import *
+from .dist_utils import *
 
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 __all__ = Reader.__all__ + Calculator.__all__ + cacheing.__all__
 
