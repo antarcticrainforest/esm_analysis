@@ -189,7 +189,7 @@ class MPICluster:
 
     def _submit(self):
 
-        res = run([self.batch_system.submit_cmd, self.script_path],
+        res = run([self.batch_system.submit_cmd, str(self.script_path)],
                   cwd=str(self.workdir), stdout=PIPE, check=True)
         job_id, _, _cluster = res.stdout.decode('utf-8').strip().partition(';')
         return job_id.split(" ")[-1]
@@ -255,10 +255,7 @@ class MPICluster:
         """
 
         job_extra = job_extra or ''
-
-        if not workdir:
-            td =  TemporaryDirectory()
-            workdir = td.name
+        workdir = workdir or TemporaryDirectory().name
         workdir = Path(workdir)
         batch_system = Slurm()
         script = slurm_directive.format(
