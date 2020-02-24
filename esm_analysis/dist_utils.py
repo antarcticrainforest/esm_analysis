@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 __all__ = ['MPICluster']
 
-slurm_directive="""#!/bin/bash
+slurm_directive='''#!/bin/bash
 #=============================================================================
 # =====================================
 # mistral batch job parameters
@@ -24,8 +24,8 @@ slurm_directive="""#!/bin/bash
 #SBATCH --mem=140G
 #SBATCH -n {nworkers}
 
-"""
-_script="""
+'''
+_script='''
 rm -r worker-*
 rm scheduler.json
 rm global.lock
@@ -48,7 +48,7 @@ export OMPI_MCA_coll=^ghc
 
 {run_cmd} dask-mpi --no-nanny --scheduler-file scheduler.json
 
-"""
+'''
 
 class BatchBase:
     type = None
@@ -66,14 +66,14 @@ class Slurm(BatchBase):
     run_cmd = 'srun -l --cpu_bind=threads --distribution=block:cyclic --propagate=STAC'
 
     def cancel(self, job_id):
-        """Close down a cluster with a given job_id."""
+        '''Close down a cluster with a given job_id.'''
 
         if job_id is None:
             return
         run([self.cancel_cmd, job_id], stdout=PIPE, check=True)
 
     def check(self, job_id, simple=True, color=True):
-        """Check the status of a running cluster."""
+        '''Check the status of a running cluster.'''
 
         if job_id is None:
             return None, None, None
@@ -88,21 +88,21 @@ class Slurm(BatchBase):
         return status_l[table['ST']], table['TIME'], table['NODES']
 
 class MPICluster:
-    """Create an instance of a Worker Cluster using."""
+    '''Create Cluster of distrbuted workders.'''
 
 
     def close(self):
-        """Close down the running cluster."""
+        '''Close down the running cluster.'''
 
-        self.batch_system.cancel(self.job_id)
+        self._batch_system.cancel(self.job_id)
         self.job_id = None
         self._write_json()
 
     @property
     def status(self):
-        """Check the status of the running cluster."""
+        '''Check the status of the running cluster.'''
 
-        status, _, _ = self.batch_system.check(self.job_id)
+        status, _, _ = self._batch_system.check(self.job_id)
 
         try:
             return status[0].upper()
@@ -112,7 +112,7 @@ class MPICluster:
 
     def __repr__(self):
 
-        status, time, nodes = self.batch_system.check(self.job_id)
+        status, time, nodes = self._batch_system.check(self.job_id)
         if status is None:
             return 'No cluster running'
 
@@ -120,7 +120,7 @@ class MPICluster:
 
     def _repr_html_(self):
 
-        status, time, nodes = self.batch_system.check(self.job_id)
+        status, time, nodes = self._batch_system.check(self.job_id)
         colors = dict(Queueing='DodgerBlue',
                       Fail='Tomato',
                       Running='MediumSeaGreen')
@@ -137,7 +137,7 @@ class MPICluster:
 
     @property
     def script_path(self):
-        """Return the path of the script that is/was submitted."""
+        '''Return the path of the script that is/was submitted.'''
 
         return  Path(self.workdir) / 'scheduler.sh'
 
@@ -152,7 +152,7 @@ class MPICluster:
         _json_data= dict(job_id=self.job_id,
                            workdir=str(self.workdir),
                            job_script=self.job_script,
-                           batch_system=self.batch_system.type,
+                           batch_system=self._batch_system.type,
                            datetime=self.submit_time.isoformat())
         with (self.workdir / 'cluster.json').open('w') as f:
             json.dump(_json_data, f, indent=3, sort_keys=True)
@@ -172,7 +172,27 @@ class MPICluster:
 
     @classmethod
     def load(cls, workdir):
-        """Load the information of a running cluster."""
+        '''Load the information of a running cluster.
+
+        This method can be used to connect to an already running cluster.
+
+        ::
+
+            from esm_analysis import MPICluster
+            cluster = MPICluster.load('/tmp/old_cluster')
+
+        Parameters
+        ----------
+        workdir : str
+            Directory name where information of the previously created cluster
+            is stored. The information on the work directory can be retrieved
+            by calling the workdir property
+
+        Return
+        ------
+
+        Instance of the MPICluster object: esm_analysis.MPICluster
+        '''
 
         workdir = Path(workdir)
         _json_data = cls._load(workdir)
@@ -189,7 +209,7 @@ class MPICluster:
 
     def _submit(self):
 
-        res = run([self.batch_system.submit_cmd, str(self.script_path)],
+        res = run([self._batch_system.submit_cmd, str(self.script_path)],
                   cwd=str(self.workdir), stdout=PIPE, check=True)
         job_id, _, _cluster = res.stdout.decode('utf-8').strip().partition(';')
         return job_id.split(" ")[-1]
@@ -197,12 +217,12 @@ class MPICluster:
     def __init__(self, script, workdir, submit_time=None, batch_system=None,
                  job_id=None):
 
-        """Create a cluster using a given submit script."""
+        '''Create a cluster using a given submit script.'''
 
         self.job_script = script
         self.submit_time = submit_time
         self.job_id = job_id
-        self.batch_system = batch_system
+        self._batch_system = batch_system
         self.workdir = Path(workdir)
         self.workdir.mkdir(parents=True, exist_ok=True)
         if self.submit_time is None:
@@ -220,6 +240,17 @@ class MPICluster:
                  nworkers=1,
                  job_extra=None):
         """Create an MPI cluster using slurm.
+
+        This methd will setup a cluster with help of the workload manager slurm.
+
+        ::
+
+            from esm_analysis import MPICluster
+            cluster = MPICluster.slurm('account', 'express', nworkers=10)
+
+
+        The jobs will immediately be submitted to the workload manager
+        upon creation of the instance.
 
         Parameters
         ----------
@@ -251,7 +282,8 @@ class MPICluster:
 
         Return
         ------
-        str: job_id of the submitted job
+
+        Instance of the MPICluster object: esm_analysis.MPICluster
         """
 
         job_extra = job_extra or ''
