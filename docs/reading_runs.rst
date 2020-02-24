@@ -4,16 +4,17 @@ Reading data files
 You will normally access data from a model experiement, which is stored in a
 directory containing netcdf files. You can load the **meta-data** which is
 associated with such an experiement by calling :func:`RunDirectory`.
-
-.. module:: esm_analysis
-
-.. autofunction:: RunDirectory
-
 Applying :func:`RunDirectory` only loads meta data, that is which model,
 who many data files are present and any other meta-data that is important for
 the experiment.
 
-.. class:: RunDirectory
+
+.. module:: esm_analysis
+
+.. autoclass:: RunDirectory
+    :members:
+
+    .. automethod:: __init__
 
     .. attribute: dask_client
 
@@ -25,7 +26,7 @@ the experiment.
 
         The name of the directory that has been loaded
 
-    .. attribute: files
+    .. attribute:: files
 
         Apply a given function to the dataset via the dask scheduling client
 
@@ -34,7 +35,7 @@ the experiment.
     .. automethod:: restart_client
 
 
-    .. attribute: status
+    .. attribute:: status
 
         Returns the status of the associated dask worker client
 
