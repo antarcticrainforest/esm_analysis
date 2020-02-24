@@ -88,7 +88,7 @@ class Slurm(BatchBase):
         return status_l[table['ST']], table['TIME'], table['NODES']
 
 class MPICluster:
-    '''Create Cluster of distrbuted workders.'''
+    '''Create Cluster of distrbuted workers.'''
 
 
     def close(self):
