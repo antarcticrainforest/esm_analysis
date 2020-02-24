@@ -19,13 +19,13 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 
 project = 'esm-analysis'
-copyright = '2019, Martin Bergemann'
+copyright = '2020, Martin Bergemann'
 author = 'Martin Bergemann'
 
 # For :ghissue: and :ghpull: links.
 github_project_url = "https://github.com/antarcticrainforest/esm_analysis/"
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '0.0.2'
 
 # The master toctree document.
 master_doc = 'index'
@@ -40,6 +40,7 @@ extensions = [
         'sphinx.ext.intersphinx',
         'sphinx.ext.napoleon',
         'nbsphinx',
+        'sphinx.ext.viewcode',
         'sphinxcontrib_github_alt',
 
 ]
