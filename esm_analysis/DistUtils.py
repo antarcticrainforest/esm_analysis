@@ -139,6 +139,11 @@ class MPICluster:
                                                nodes=nodes)
 
     @property
+    def schedule_file(self):
+        """Return the schedule file."""
+        return Path(self.workdir) / 'scheduler.json'
+
+    @property
     def script_path(self):
         """Return the path of the script that is/was submitted."""
         return Path(self.workdir) / 'scheduler.sh'
