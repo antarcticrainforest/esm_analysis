@@ -1,5 +1,4 @@
 """Test the reader module."""
-from pathlib import Path
 
 import pytest
 import numpy as np
@@ -45,13 +44,14 @@ def test_load_data(mock_timedir):
         assert (run.variables['tas'] in run.dataset.keys()) is True
         assert run.dataset[run.variables['tas']].shape == (240, 512)
     with RunDirectory(mock_timedir, f90name_list=('blabla')) as run:
-        assert type(run.variables) == GenericModel
+        assert isinstance(run.variables,  GenericModel)
         assert run.variables['pr'] == 'pr'
         assert run.variables.pr == 'pr'
 
 
 def test_gen_weights(mock_vardir, mockgrid, mockweights, mock_client):
     """Test the weight generation."""
+    from pathlib import Path
     with RunDirectory.gen_weights(mockgrid, mock_vardir, prefix='test',
                                   infile=mockweights, overwrite=True,
                                   client=mock_client) as run:
@@ -71,7 +71,7 @@ def test_gen_weights(mock_vardir, mockgrid, mockweights, mock_client):
 def test_weighted_remap(mock_run, mockgrid, mock_timedir, mockweights,
                         mock_tmpdir):
     """Test weighted remapping."""
-    dataset = mock_run.load_data()
+    mock_run.load_data()
     out_files = mock_run.remap(mockgrid,
                                out_dir=mock_tmpdir,
                                grid_file=mockweights)
@@ -140,10 +140,9 @@ def test_apply_function(mock_run, mock_client):
     assert len(max_vals) == 2
     assert np.allclose(max_vals, 0) is True
     with pytest.raises(KeyError):
-        failed_out = mock_run.apply_function(lambda d, v: d[v].min().values,
-                                             (mock_run.dataset,
-                                              mock_run.dataset),
-                                             args=('blabla', ))
+        mock_run.apply_function(lambda d, v: d[v].min().values,
+                                (mock_run.dataset, mock_run.dataset),
+                                args=('blabla', ))
 
 
 def test_lookup():

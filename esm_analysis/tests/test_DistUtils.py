@@ -11,7 +11,6 @@ def test_createCluster(mock_slurm, mock_workdir, monkeypatch):
     Cluster = MPICluster.slurm('mh0731', 'gpu', workdir=mock_workdir)
     assert Cluster.job_id == os.environ['JOB_ID']
     assert str(Cluster.workdir) == mock_workdir
-    status = 'Q'
     assert Cluster.status == 'Q'
     monkeypatch.setenv('STATUS', '')
     assert Cluster.status is None

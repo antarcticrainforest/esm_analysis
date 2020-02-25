@@ -95,7 +95,7 @@ def write_file(filename, variables, ntimesteps, firststep=None, dt='10min'):
         f.variables['time'].CDI_grid_type = 'unstructured'
         f.variables['time'].number_of_grid_in_reference = 1
         for varn in variables:
-            var = f.createVariable(varn, 'f', ('time', 'ncells'))
+            f.createVariable(varn, 'f', ('time', 'ncells'))
             f.variables[varn][:] = gaussian(len(f.dimensions['ncells']))
             f.variables[varn].CDI_grid_type = 'unstructured'
             f.variables[varn].number_of_grid_in_reference = 1

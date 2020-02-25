@@ -24,8 +24,7 @@ def _check(datasets, check_container, warn=None, accpet_none=True):
             check_container += diff * [check_container[-1]]
         elif len(datasets) < len(check_container):
             if warn:
-                UserWarning('more {} than datasets given, '.format(warn)
-                            'dropping exceeding {}'.format(warn))
+                UserWarning('more {} than datasets given.'.format(warn))
             check_container = check_container[:len(datasets)]
     except TypeError:
         pass

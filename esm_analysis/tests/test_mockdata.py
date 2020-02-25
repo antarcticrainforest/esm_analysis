@@ -1,15 +1,12 @@
 from tempfile import (NamedTemporaryFile, TemporaryDirectory)
 
 from netCDF4 import Dataset as nc
-import pytest
-from testpath import assert_isfile
 
-from .mockdata import (create_grid, get_weights, write_file)
+from .mockdata import (get_weights, write_file)
 
 def test_clear_cache_dir(esm_analysis):
 
     _cache_dir =  esm_analysis.cacheing._cache_dir
-    from pathlib import Path
     esm_analysis.clear_cache_dir()
     assert len([f for f in _cache_dir.rglob('*.*')]) == 0
 
@@ -27,11 +24,11 @@ def test_write_file():
 
         ncfiles = [nc(str(p)) for p in Path(td).rglob('*.nc')]
         assert len(ncfiles) == 10
-        vars = sorted([list(f.variables.keys()) for f in ncfiles])
-        assert len(np.unique(vars)) == 3
+        variables = sorted([list(f.variables.keys()) for f in ncfiles])
+        assert len(np.unique(variables)) == 3
         shapes = np.array([f.variables['t_2m'].shape for f in ncfiles])
         assert tuple(np.unique(shapes)) == (24, 512)
-        [f.close() for f in ncfiles]
+        _ = [f.close() for f in ncfiles]
 
 def test_get_weigths():
 

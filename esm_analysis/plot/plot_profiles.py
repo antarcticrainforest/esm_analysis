@@ -305,7 +305,7 @@ class ProfilePlotter(BuildWidget):
                 units = dset[self.varnames[nn]].units
                 self.ax[nn].set_title('{} [{}]'.format(name, units))
 
-        for i in range(len(data)):
+        for i, _  in enumerate(data):
             if self.plots[i] is None:  # We do not have an image yet
                 self.plots[i] = self.ax[i].imshow(data[i],
                                                   vmin=self.vmin[i],
