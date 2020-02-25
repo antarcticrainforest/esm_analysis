@@ -1,4 +1,4 @@
-
+"""Plot module."""
 import matplotlib
 from .plot_profiles import *
 

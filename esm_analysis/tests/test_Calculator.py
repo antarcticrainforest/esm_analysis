@@ -1,6 +1,5 @@
 """Test the Calculator module."""
 import numpy as np
-import pytest
 
 
 def test_calc_rh(rh, spec_hum, mixing_r, temp_c, pres, esm_analysis):

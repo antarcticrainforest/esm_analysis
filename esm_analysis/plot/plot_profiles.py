@@ -21,13 +21,14 @@ CBAR_ARGS = {
             'cbar_location': 'bottom',
             }
 
-__all__ = ('ProfilePlotter')
+__all__ = ('ProfilePlotter',)
 
 
 COL_PAL = sns.color_palette("colorblind", 8)
 
 
 class ProfilePlotter(BuildWidget):
+
     """Plot factory to create different kinds of Profile Plots."""
 
     @abc.abstractmethod
@@ -333,13 +334,15 @@ class ProfilePlotter(BuildWidget):
                    vmax=None, vmin=None, stepsize=None, invert_yaxis=True,
                    sel_slice=None, cbar_args=None, step_dim=0, avg_dims=(1,),
                    **kwargs):
-        """Create a 2D Profile (cross section) plot.
+        """
+        Create a 2D Profile (cross section) plot.
 
         This method takes datasets and creates cross sections by slicing
         or averaging or applying a user given function to input dataset(s).
 
-        Parameters:
-        ===========
+        Parameters
+        ----------
+
         datasets : collection, xarray dataset
             Input dataset(s)
         varnames : collection, str
@@ -378,6 +381,7 @@ class ProfilePlotter(BuildWidget):
         **kwargs:
             additional key word arguments that are passed to any user defined
             apply_func.
+
         """
         cls.setup = cls.setup_2d
         plot_obj = cls(datasets, varnames, step_dim,
@@ -399,13 +403,15 @@ class ProfilePlotter(BuildWidget):
                    stepsize=None, invert_yaxis=True, sel_slice=None,
                    cbar_args=None, step_dim=0, avg_dims=(1,),
                    **kwargs):
-        """Create a 2D Profile (cross section) plot.
+        """
+        Create a 2D Profile (cross section) plot.
 
         This method takes datasets and creates cross sections by slicing
         or averaging or applying a user given function to input dataset(s).
 
-        Parameters:
-        ===========
+        Parameters
+        ----------
+
         datasets : collection, xarray dataset
             Input dataset(s)
         xvars : collection, str
@@ -446,6 +452,7 @@ class ProfilePlotter(BuildWidget):
         **kwargs:
             additional key word arguments that are passed to any user defined
             apply_func.
+
         """
         cls.xvars = _check(datasets, xvars)
         apply_funcs = _check(datasets, apply_funcs, accpet_none=False)

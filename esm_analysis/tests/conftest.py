@@ -65,9 +65,8 @@ def mock_timedir():
 def mock_vardir():
     """Create a directory that contains nc files of different variables."""
     today = datetime.date.today()
-    vars = ('t_2m', 'pres_sfc', 'rain_gsp_rate')
     with TemporaryDirectory() as td:
-        for v in vars:
+        for v in ('t_2m', 'pres_sfc', 'rain_gsp_rate'):
             fname = 'test_{}_{}Z.nc'.format(v, today.strftime("%Y%m%d"))
             write_file(Path(td) / fname, (v, ), 144,
                        firststep=today, dt='10min')

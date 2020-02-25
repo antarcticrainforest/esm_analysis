@@ -7,7 +7,8 @@ __all__ = ('calc_rh', 'calc_sathum', 'calc_satpres')
 
 def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa',
             percentage=True, mixing_r=False):
-    """Calculate Realtive Humidity.
+    """
+    Calculate Realtive Humidity.
 
     Parameters
     ----------
@@ -37,6 +38,7 @@ def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa',
     -------
 
         Relative Humidity: float/nd-array
+
     """
     qs = calc_sathum(temp, pres, temp_unit=temp_unit,
                      pres_unit=pres_unit, mixing_r=mixing_r)
@@ -47,7 +49,8 @@ def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa',
 
 
 def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
-    """Calculate Saturation Humidity.
+    """
+    Calculate Saturation Humidity.
 
     Parameters
     ----------
@@ -84,7 +87,8 @@ def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
 
 
 def calc_satpres(temp, unit='K'):
-    """Calculate saturation presure.
+    """
+    Calculate saturation presure.
 
     Parameters
     ----------

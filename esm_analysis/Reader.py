@@ -28,7 +28,8 @@ import xarray as xr
 
 
 def progress_bar(*futures, **kwargs):
-    """Connect dask futures to tqdm progressbar.
+    """
+    Connect dask futures to tqdm progressbar.
 
     The probress_bar method gives you the ability to get some feedback while
     processing data.
@@ -57,6 +58,7 @@ def progress_bar(*futures, **kwargs):
 
     kwargs:
         Additional keyword arguments passed to the tqdm object
+
     """
     notebook = kwargs.pop('notebook', None)
     bar_title = kwargs.pop('label', 'Progress')
@@ -74,6 +76,7 @@ def progress_bar(*futures, **kwargs):
 
 
 class _BaseVariables(dict):
+
     """Base Class to define Variable Name."""
 
     _base_variables = {'lon', 'lat', 'time', 'ps', 'psl', 'cosmu0', 'rsdt',
@@ -112,6 +115,7 @@ class _BaseVariables(dict):
 
 
 class DWD(_BaseVariables):
+
     """Variable name Class for DWD version of ICON."""
 
     #             DWD-Name  , Base-Name
@@ -147,6 +151,7 @@ class DWD(_BaseVariables):
 
 
 class CMORPH(_BaseVariables):
+
     """Variable name Class for CMORPH."""
 
     #             CMPORPH-Name  , Base-Name
@@ -157,6 +162,7 @@ class CMORPH(_BaseVariables):
 
 
 class MPI(_BaseVariables):
+
     """Variable name Class for ECHAM / MPI version of ICON."""
 
     def __init__(self):
@@ -164,6 +170,7 @@ class MPI(_BaseVariables):
 
 
 class GenericModel(dict):
+
     """Default dummy class - No lookup takes place."""
 
     def __getattr__(self, attr):
@@ -177,7 +184,8 @@ ECHAM = MPI
 
 
 def lookup(setup):
-    """Create a variable translator.
+    """
+    Create a variable translator.
 
     This methods creats a variable translator object based on a given
     input setup.
@@ -191,6 +199,7 @@ def lookup(setup):
     Returns
     -------
     Translator Object : esm_analysis.Reader._BaseVariables
+
     """
     if setup is None:
         return GenericModel()
@@ -206,7 +215,8 @@ __all__ = ('RunDirectory', 'lookup', 'Config', 'cdo',
 
 
 def icon2datetime(icon_dates, start=None):
-    """Convert datetime objects in icon format to python datetime objects.
+    """
+    Convert datetime objects in icon format to python datetime objects.
 
     ::
 
@@ -253,10 +263,12 @@ def icon2datetime(icon_dates, start=None):
 
 
 class Config:
+
     """Configuration Object to save model setups."""
 
     def __init__(self, toml_config_file):
-        """Load a configuration.
+        """
+        Load a configuration.
 
         ::
             model_setup = Config('model_setup.toml')
@@ -276,6 +288,7 @@ class Config:
         -------
 
         Data Frame of containing model stups: pandas.core.frame.DataFrame
+
         """
         self._config = toml.load(toml_config_file)
         try:
@@ -303,13 +316,15 @@ _cache_dir.mkdir(parents=True, exist_ok=True)
 
 
 class RunDirectory:
+
     """Open data in experiment folder."""
 
     weightfile = None
     griddes = None
 
     def __enter__(self):
-        """Create enter method.
+        """
+        Create enter method.
 
         The enter method just returns the object it self. It is used
         to work along the with __exit__ method that closes a distributed
@@ -329,7 +344,8 @@ class RunDirectory:
                  f90name_list=None,
                  filetype='nc',
                  client=None):
-        """Create an RunDirecotry object from a given input directory.
+        """
+        Create an RunDirecotry object from a given input directory.
 
         ::
 
@@ -365,6 +381,7 @@ class RunDirectory:
             Configuration that is used the create a dask client which recieves
             tasks for multiproccessing. By default (None) a local client will
             be started.
+
         """
         if isinstance(client, Client):
             self.dask_client = client
@@ -463,7 +480,8 @@ class RunDirectory:
                        args=None,
                        client=None,
                        **kwargs):
-        """Apply function to given collection.
+        """
+        Apply function to given collection.
 
         ::
 
@@ -528,7 +546,8 @@ class RunDirectory:
               weightfile=None,
               options='-f nc4',
               grid_file=None):
-        """Regrid to a different input grid.
+        """
+        Regrid to a different input grid.
 
         ::
 
@@ -560,6 +579,7 @@ class RunDirectory:
         Returns
         -------
         Collection of output: (str, xarray.DataArray, xarray.Dataset)
+
         """
         out_dir = out_dir or Path('/tmp')
         Path(out_dir).absolute().mkdir(exist_ok=True, parents=True)
@@ -613,7 +633,8 @@ class RunDirectory:
                     infile=None,
                     overwrite=False,
                     client=None):
-        """Create grid weigths from grid description and instanciate class.
+        """
+        Create grid weigths from grid description and instanciate class.
 
         ::
 
@@ -642,6 +663,7 @@ class RunDirectory:
         -------
 
             RunDirectory: RunDirectory object
+
         """
         try:
             out_file = [f for f in Path(run_dir).absolute().rglob('*2d*.nc')][0]
@@ -674,7 +696,8 @@ class RunDirectory:
 
     def load_data(self, filenames=None,
                   **kwargs):
-        """Open a multifile dataset using xrarray open_mfdataset.
+        """
+        Open a multifile dataset using xrarray open_mfdataset.
 
         ::
 
@@ -682,6 +705,7 @@ class RunDirectory:
 
         Parameters
         ----------
+
         filenames: collection/str
             collection of filenames, filename or glob pattern for filenames
             that should be read. Default behavior is reading all dataset files
@@ -691,7 +715,9 @@ class RunDirectory:
 
         Returns
         -------
+
         Xarray (multi-file) dataset: xarray.Dataset
+
         """
         filenames = self._get_files_from_glob_pattern(filenames) or self.files
         kwargs.setdefault('parallel',  True)

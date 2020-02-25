@@ -35,10 +35,12 @@ def _check(datasets, check_container, warn=None, accpet_none=True):
 
 
 def _read_data(dataset, varname, step_var, sel_slice, avg_dim, tstep, dim):
-    """The the data for a given step variable.
+    """
+    The the data for a given step variable.
 
-    Parameters:
-    ===========
+    Parameters
+    ----------
+
     dataset : collection
     datasets that contain the data that needs to be displayed
 
@@ -63,8 +65,10 @@ def _read_data(dataset, varname, step_var, sel_slice, avg_dim, tstep, dim):
     the target dimension of the data set (2D or 1D)
 
     Returns
-    =======
-    xarray dataset of dimension dim
+    -------
+
+    xarray dataset of dimension dim: xarray.Dataset
+
     """
     if len(dataset[varname].shape) == dim:
         # There is not much more to do here:
@@ -110,6 +114,7 @@ def _read_data(dataset, varname, step_var, sel_slice, avg_dim, tstep, dim):
 
 
 class BuildWidget:
+
     """Plot widget Factory."""
 
     cmaps = ['viridis', 'plasma', 'inferno', 'magma',

@@ -1,5 +1,6 @@
 # coding: utf-8
-"""The esm-analysis package.
+"""
+The esm-analysis package.
 
 Copyright (c) 2019, Martin Bergemann
 All rights reserved.
@@ -40,7 +41,7 @@ __version__ = "0.0.2"
 from .Reader import *
 from .Calculator import *
 from .cacheing import *
-from .dist_utils import *
+from .DistUtils import *
 
 
 __all__ = Reader.__all__ + Calculator.__all__ + cacheing.__all__
