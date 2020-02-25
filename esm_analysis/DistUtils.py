@@ -93,8 +93,7 @@ class _Slurm:
         if job_id is None:
             return None, None, None
         res = run([self.check_cmd, '-j {}'.format(job_id)], check=True,
-                   shell=False  # nosec
-                  stdout=PIPE).stdout.decode('utf-8').split('\n')
+                  shell=False, stdout=PIPE).stdout.decode('utf-8').split('\n')
         if len(res) < 2:
             return None, None, None
         status = [line.split() for line in res]
