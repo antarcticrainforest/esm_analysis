@@ -1,45 +1,54 @@
+"""Module for plotting Nd fields."""
+
 import abc
 import math
-import warnings
 
-from ipywidgets import widgets, Layout
+from ipywidgets import widgets
 from IPython.display import display
 from matplotlib import pyplot as plt
 from matplotlib import cm
-from mpl_toolkits.axes_grid1 import ImageGrid, AxesGrid
+from mpl_toolkits.axes_grid1 import ImageGrid
 import numpy as np
 import seaborn as sns
+import threading
 
 from .setup_plot import (BuildWidget, _check, _read_data)
 
 CBAR_ARGS = {
             'cbar_mode': 'single',
             'cbar_size': '2%',
-            'cbar_pad' : '2%',
+            'cbar_pad': '2%',
             'cbar_location': 'bottom',
             }
 
-__all__ = ['ProfilePlotter']
+__all__ = ('ProfilePlotter')
 
 
 COL_PAL = sns.color_palette("colorblind", 8)
 
-class ProfilePlotter(BuildWidget):
-    @abc.abstractmethod
-    def __init__(self, datasets, varnames, step_dim,
-                 sel_slice, avg_dims, *,
-                  apply_func=None,
-                  figsize=None,
-                  vmax=None,
-                  vmin=None,
-                  stepsize=None,
-                  invert_yaxis=False,
-                  step_variable='time',
-                  cbar_args=None,
-                  dims=1,
-                  maps=False,
-                  **kwargs):
 
+class ProfilePlotter(BuildWidget):
+    """Plot factory to create different kinds of Profile Plots."""
+
+    @abc.abstractmethod
+    def __init__(self,
+                 datasets,
+                 varnames,
+                 step_dim,
+                 sel_slice,
+                 avg_dims, *,
+                 apply_func=None,
+                 figsize=None,
+                 vmax=None,
+                 vmin=None,
+                 stepsize=None,
+                 invert_yaxis=False,
+                 step_variable='time',
+                 cbar_args=None,
+                 dims=1,
+                 maps=False,
+                 **kwargs):
+        """Create the Profile Plot object."""
         self.dims = dims
         self.maps = maps
         _link = False
@@ -63,8 +72,10 @@ class ProfilePlotter(BuildWidget):
             pass
         self.step_variables = []
         if self.cbar_args['cbar_mode'].lower() != 'each':
-           _link = True
-        for (dset, varn, step_dim) in zip(self.datasets, self.varnames, self.step_dims):
+            _link = True
+        for (dset, varn, step_dim) in zip(self.datasets,
+                                          self.varnames,
+                                          self.step_dims):
             if isinstance(step_dim, str):
                 self.step_variables.append(step_dim)
             elif isinstance(step_dim, (int, float)):
@@ -72,17 +83,19 @@ class ProfilePlotter(BuildWidget):
             else:
                 self.step_variables.append(None)
 
-
         self.plots = [None for i in range(len(self.varnames))]
 
-        super().__init__(figsize=figsize, vmax=vmax, vmin=vmin,
-                   stepsize=stepsize, clim_setter=self._set_clim,
-                   plot_updater=self._update_plot,
-                   cmap_setter=self._set_cmap,
-                   step_variable=step_variable,
-                   invert_yaxis=invert_yaxis,
-                   link=_link,
-                   num_dsets=len(datasets))
+        super().__init__(figsize=figsize,
+                         vmax=vmax,
+                         vmin=vmin,
+                         stepsize=stepsize,
+                         clim_setter=self._set_clim,
+                         plot_updater=self._update_plot,
+                         cmap_setter=self._set_cmap,
+                         step_variable=step_variable,
+                         invert_yaxis=invert_yaxis,
+                         link=_link,
+                         num_dsets=len(datasets))
 
         self.kwargs = kwargs
         self.figsize = figsize
@@ -100,31 +113,32 @@ class ProfilePlotter(BuildWidget):
             self._update_2dplot(plot_range=plot_range)
 
     def setup(self):
+        """Setup the Profile Plot."""
         if self.dims == 1:
-            func=self.setup_1d
+            func = self.setup_1d
         else:
-            func=self.setup_2d
+            func = self.setup_2d
         self._thread_stop = threading.Event()
         self._thread = threading.Thread(target=func)
         self._thread.start()
 
     def _stop(self):
-       try:
-          self._thread_stop.set()
-       except AttributeError:
-          pass
+        try:
+            self._thread_stop.set()
+        except AttributeError:
+            pass
 
     def _set_clim(self, vmin, vmax, num):
         """Set new display limits of images."""
         cbar_ticks = np.linspace(vmin, vmax, 6)
         self.vmin[num], self.vmax[num] = vmin, vmax
         if self._link:
-           plots, cbars = self.plots, self.cbars
+            plots, cbars = self.plots, self.cbars
         else:
-           try:
-              plots, cbars = [self.plots[num]], [self.cbars[num]]
-           except IndexError:
-              plots, cbars = [self.plots[num]], self.cbars
+            try:
+                plots, cbars = [self.plots[num]], [self.cbars[num]]
+            except IndexError:
+                plots, cbars = [self.plots[num]], self.cbars
 
         for n, im in enumerate(plots):
             try:
@@ -138,19 +152,19 @@ class ProfilePlotter(BuildWidget):
             try:
                 cbar.update_normal(im)
             except AttributeError:
-                    pass
+                pass
             try:
                 cbar.set_ticks(cbar_ticks)
                 cbar.update_ticks()
             except AttributeError:
-                 pass
+                pass
 
     def _set_cmap(self, cmap, num):
         """Set new colormap."""
         if self._link:
-           plots = self.plots
+            plots = self.plots
         else:
-           plots = [self.plots[num]]
+            plots = [self.plots[num]]
         for im in plots:
             try:
                 im.set_cmap(cmap)
@@ -158,10 +172,14 @@ class ProfilePlotter(BuildWidget):
                 return
 
     def get_data(self):
+        """Get the plot data."""
         data = []
         for n, (dset, varn) in enumerate(zip(self.datasets, self.varnames)):
             try:
-                data.append(self.apply_func[n](dset, varn, self.timestep, **self.kwargs))
+                data.append(self.apply_func[n](dset,
+                                               varn,
+                                               self.timestep,
+                                               **self.kwargs))
             except TypeError:
                 try:
                     sel_slice = self.sel_slice[n]
@@ -171,27 +189,30 @@ class ProfilePlotter(BuildWidget):
                     avg_dims = self.avg_dims[n]
                 except TypeError:
                     avg_dims = self.avg_dims
-                data.append(_read_data(dset, varn, self.step_variables[n],
-                                            sel_slice,
-                                            avg_dims,
-                                            self.timestep,
-                                            self.dims))
+                data.append(_read_data(dset,
+                                       varn,
+                                       self.step_variables[n],
+                                       sel_slice,
+                                       avg_dims,
+                                       self.timestep,
+                                       self.dims))
             if self.vmin[n] is None and self.vmax[n] is None:
                 self.vmax[n] = np.nanmax(data[n])
                 self.vmin[n] = np.nanmin(data[n])
                 max_v = self.vmax[n]+np.fabs(self.vmax[n]-self.vmin[n])
                 min_v = self.vmin[n]-np.fabs(self.vmax[n]-self.vmin[n])
-                if min_v == max_v: #Both are prob 0:
-                  max_v += 0.03
-                  min_v -= 0.03
+                if min_v == max_v:  # Both are prob 0:
+                    max_v += 0.03
+                    min_v -= 0.03
                 mag = 10**(math.floor(math.log10(np.fabs(max_v))-2))
                 try:
-                   self.val_sliders[n].step = mag
-                   self.val_sliders[n].min = min_v
-                   self.val_sliders[n].max = max_v
-                   self.val_sliders[n].value = [self.vmin[n]/2., self.vmax[n]/2.]
+                    self.val_sliders[n].step = mag
+                    self.val_sliders[n].min = min_v
+                    self.val_sliders[n].max = max_v
+                    self.val_sliders[n].value = [self.vmin[n]/2.,
+                                                 self.vmax[n]/2.]
                 except IndexError:
-                   pass
+                    pass
 
         return data
 
@@ -215,32 +236,35 @@ class ProfilePlotter(BuildWidget):
             else:
                 x = data[i]
                 y = self.get_secondary(self.second_vars[i], i)
-            if self.plots[i] is None: # We do not have an image yet
+            if self.plots[i] is None:  # We do not have an image yet
                 self.ax.append(self.fig.add_subplot(1, len(data), i+1))
                 self.plots[i] = self.ax[i].plot(x, y,
                                                 color=COL_PAL[i],
                                                 lw=self.linewidth)[0]
 
                 self.set_plot_range(i, x, y)
-            else: # We do have an image, that needs updating
+            else:  # We do have an image, that needs updating
                 self.plots[i].set_data(x, y)
                 self.set_plot_range(i, x, y)
             if self.invert_yaxis:
                 self.ax[i].invert_yaxis()
 
     def set_plot_range(self, num, x, y):
+        """Set the min/max display range."""
         p_rangex = np.fabs(x.max() - y.min())
         p_rangey = np.fabs(y.max() - y.min())
         self.ax[num].set_xlim(x.min() - p_rangex*0.05, x.max() + p_rangex*0.05)
         self.ax[num].set_ylim(y.min() - p_rangey*0.05, y.max() + p_rangey*0.05)
 
     def setup_1d(self):
+        """Setup the widgets."""
         self._update_plot(plot_range=(self.vmin, self.vmax))
         self.sl = widgets.HBox([self.t_step])
         for wdg in (self.sl, ):
             display(wdg)
 
     def get_secondary(self, var, num):
+        """Get the secondary axis."""
         try:
             return self.apply_second(self.datasets[num])
         except TypeError:
@@ -252,11 +276,10 @@ class ProfilePlotter(BuildWidget):
         _ = self.get_data()
 
         self.sl = widgets.HBox([self.t_step, *self.cmap_sel])
-        for wdg in [self.sl ]+self.val_sliders:
+        for wdg in [self.sl] + self.val_sliders:
             display(wdg)
 
-    def _update_2dplot(self,
-                 cmap='viridis', **kwargs):
+    def _update_2dplot(self, cmap='viridis', **kwargs):
         """Update the plotted image."""
         data = self.get_data()
         if self.fig is None:
@@ -274,15 +297,15 @@ class ProfilePlotter(BuildWidget):
                                 direction='row',
                                 **self.cbar_args)
             for nn, dset in enumerate(self.datasets):
-               try:
-                  name = dset[self.varnames[nn]].long_name
-               except AttributeError:
-                  name = dset[self.varnames[nn]].name
-               units = dset[self.varnames[nn]].units
-               self.ax[nn].set_title('{} [{}]'.format(name, units))
+                try:
+                    name = dset[self.varnames[nn]].long_name
+                except AttributeError:
+                    name = dset[self.varnames[nn]].name
+                units = dset[self.varnames[nn]].units
+                self.ax[nn].set_title('{} [{}]'.format(name, units))
 
         for i in range(len(data)):
-            if self.plots[i] is None: # We do not have an image yet
+            if self.plots[i] is None:  # We do not have an image yet
                 self.plots[i] = self.ax[i].imshow(data[i],
                                                   vmin=self.vmin[i],
                                                   vmax=self.vmax[i],
@@ -296,7 +319,7 @@ class ProfilePlotter(BuildWidget):
                 self.cbars.append(cbar)
                 self.ax[i].axes.grid(b=None)
                 self._set_clim(self.vmin[i], self.vmax[i], i)
-            else: # We do have an image, that needs updating
+            else:  # We do have an image, that needs updating
                 self.plots[i].set_clim(self.vmin[i], self.vmax[i])
                 self.plots[i].set_array(data[i])
         for ax in self.ax:
@@ -305,12 +328,11 @@ class ProfilePlotter(BuildWidget):
             ax.axis.axes.set_xticks([])
         self.invert_yaxis = False
 
-
     @classmethod
     def profile_2d(cls, datasets, varnames, figsize=None, apply_func=None,
-                vmax=None, vmin=None, stepsize=None, invert_yaxis=True,
-                sel_slice=None, cbar_args=None, step_dim=0, avg_dims=(1,),
-                **kwargs):
+                   vmax=None, vmin=None, stepsize=None, invert_yaxis=True,
+                   sel_slice=None, cbar_args=None, step_dim=0, avg_dims=(1,),
+                   **kwargs):
         """Create a 2D Profile (cross section) plot.
 
         This method takes datasets and creates cross sections by slicing
@@ -355,8 +377,8 @@ class ProfilePlotter(BuildWidget):
             AxesGrid object of mpl_toolkits.axes_grid1.
         **kwargs:
             additional key word arguments that are passed to any user defined
-            apply_func."""
-
+            apply_func.
+        """
         cls.setup = cls.setup_2d
         plot_obj = cls(datasets, varnames, step_dim,
                        sel_slice, avg_dims,
@@ -368,17 +390,15 @@ class ProfilePlotter(BuildWidget):
                        dims=2,
                        maps=False,
                        invert_yaxis=invert_yaxis)
-
-
         return plot_obj
 
     @classmethod
     def profile_1d(cls, datasets, xvars, yvars,
-                figsize=None, apply_funcs=None, data_dim='y',
-                vmax=None, vmin=None, linewidth=2,
-                stepsize=None, invert_yaxis=True, sel_slice=None,
-                cbar_args=None, step_dim=0, avg_dims=(1,),
-                **kwargs):
+                   figsize=None, apply_funcs=None, data_dim='y',
+                   vmax=None, vmin=None, linewidth=2,
+                   stepsize=None, invert_yaxis=True, sel_slice=None,
+                   cbar_args=None, step_dim=0, avg_dims=(1,),
+                   **kwargs):
         """Create a 2D Profile (cross section) plot.
 
         This method takes datasets and creates cross sections by slicing
@@ -402,8 +422,8 @@ class ProfilePlotter(BuildWidget):
             The dimension along the data is plotted (y or x)
         apply_funcs : collections of mappable (default: None)
             User defined functions that are applied to x and y data,
-            if None are given the build_in function to slice or average data based on
-            variable names will be taken.
+            if None are given the build_in function to slice or average data
+            based on variable names will be taken.
         sel_slice : collection of dicts (default : None)
             if sel_slice is not None than a slice along a given axis is taken
             from the data. the slice information for each dataset should be
@@ -425,8 +445,8 @@ class ProfilePlotter(BuildWidget):
             AxesGrid object of mpl_toolkits.axes_grid1.
         **kwargs:
             additional key word arguments that are passed to any user defined
-            apply_func."""
-
+            apply_func.
+        """
         cls.xvars = _check(datasets, xvars)
         apply_funcs = _check(datasets, apply_funcs, accpet_none=False)
         if data_dim == 'y' or data_dim == 'Y':
@@ -443,14 +463,12 @@ class ProfilePlotter(BuildWidget):
         cls.data_dim = data_dim
         cls.linewidth = linewidth
         plot_obj = cls(datasets, varnames, step_dim,
-            sel_slice, avg_dims,
-            figsize=figsize,
-            stepsize=stepsize,
-            apply_func=apply_func,
-            vmin=0, vmax=1000,
-            cbar_args=cbar_args,
-            invert_yaxis=invert_yaxis,
-            dims=1,
-            maps=False)
+                       sel_slice, avg_dims,
+                       figsize=figsize,
+                       stepsize=stepsize,
+                       apply_func=apply_func,
+                       vmin=0, vmax=1000,
+                       cbar_args=cbar_args,
+                       invert_yaxis=invert_yaxis,
+                       dims=1, maps=False)
         return plot_obj
-

@@ -1,3 +1,5 @@
+"""Collection of classes for creating batch clusters."""
+
 from datetime import datetime
 import json
 from pathlib import Path
@@ -5,9 +7,9 @@ from subprocess import run, PIPE
 from tempfile import TemporaryDirectory
 
 
-__all__ = ['MPICluster']
+__all__ = ('MPICluster',)
 
-slurm_directive='''#!/bin/bash
+slurm_directive = """#!/bin/bash
 #=============================================================================
 # =====================================
 # mistral batch job parameters
@@ -24,8 +26,8 @@ slurm_directive='''#!/bin/bash
 #SBATCH --mem=140G
 #SBATCH -n {nworkers}
 
-'''
-_script='''
+"""
+_script = """
 rm -r worker-*
 rm scheduler.json
 rm global.lock
@@ -48,9 +50,12 @@ export OMPI_MCA_coll=^ghc
 
 {run_cmd} dask-mpi --no-nanny --scheduler-file scheduler.json
 
-'''
+"""
+
 
 class BatchBase:
+    """Base class defining batch commands."""
+
     type = None
     submit_cmd = 'qsub'
     cancel_cmd = 'qdel'
@@ -59,27 +64,28 @@ class BatchBase:
 
 
 class Slurm(BatchBase):
+    """Definitions to work with the slurm workload manager."""
+
     type = 'slurm'
     submit_cmd = 'sbatch'
     cancel_cmd = 'scancel'
-    check_cmd =  'squeue'
-    run_cmd = 'srun -l --cpu_bind=threads --distribution=block:cyclic --propagate=STAC'
+    check_cmd = 'squeue'
+    run_cmd = ('srun -l --cpu_bind=threads '
+               '--distribution=block:cyclic --propagate=STAC')
 
     def cancel(self, job_id):
-        '''Close down a cluster with a given job_id.'''
-
+        """Close down a cluster with a given job_id."""
         if job_id is None:
             return
         run([self.cancel_cmd, job_id], stdout=PIPE, check=True)
 
     def check(self, job_id, simple=True, color=True):
-        '''Check the status of a running cluster.'''
-
+        """Check the status of a running cluster."""
         if job_id is None:
             return None, None, None
         res = run([self.check_cmd, '-j {}'.format(job_id)],
-                   stdout=PIPE).stdout.decode('utf-8').split('\n')
-        if  len(res) < 2:
+                  stdout=PIPE).stdout.decode('utf-8').split('\n')
+        if len(res) < 2:
             return None, None, None
         status = [line.split() for line in res]
         table = dict(zip(status[0], status[1][:len(status[0])]))
@@ -87,21 +93,19 @@ class Slurm(BatchBase):
         status_l = dict(PD='Queueing', R='Running', F='Failed')
         return status_l[table['ST']], table['TIME'], table['NODES']
 
-class MPICluster:
-    '''Create Cluster of distrbuted workers.'''
 
+class MPICluster:
+    """Create Cluster of distrbuted workers."""
 
     def close(self):
-        '''Close down the running cluster.'''
-
+        """Close down the running cluster."""
         self._batch_system.cancel(self.job_id)
         self.job_id = None
         self._write_json()
 
     @property
     def status(self):
-        '''Check the status of the running cluster.'''
-
+        """Check the status of the running cluster."""
         status, _, _ = self._batch_system.check(self.job_id)
 
         try:
@@ -109,9 +113,8 @@ class MPICluster:
         except TypeError:
             return None
 
-
     def __repr__(self):
-
+        """Print the status of the submitted jobs."""
         status, time, nodes = self._batch_system.check(self.job_id)
         if status is None:
             return 'No cluster running'
@@ -119,7 +122,7 @@ class MPICluster:
         return '{}: time: {} nodes: {}'.format(status, time, nodes)
 
     def _repr_html_(self):
-
+        """Print the status of the submitted jobs in html format."""
         status, time, nodes = self._batch_system.check(self.job_id)
         colors = dict(Queueing='DodgerBlue',
                       Fail='Tomato',
@@ -128,32 +131,29 @@ class MPICluster:
             return '<p>No cluster running<p>'
         color = colors[status]
 
-        return '''<p> <span style="color:{color};">{status}</span>:
+        return """<p> <span style="color:{color};">{status}</span>:
                   time: {time}
-                  nodes: {nodes}</p>'''.format(color=color,
+                  nodes: {nodes}</p>""".format(color=color,
                                                status=status,
                                                time=time,
                                                nodes=nodes)
 
     @property
     def script_path(self):
-        '''Return the path of the script that is/was submitted.'''
-
-        return  Path(self.workdir) / 'scheduler.sh'
+        """Return the path of the script that is/was submitted."""
+        return Path(self.workdir) / 'scheduler.sh'
 
     def _write_script(self):
-
         with open(str(self.script_path), 'w') as f:
-                f.write(self.job_script)
+            f.write(self.job_script)
         self.script_path.chmod(0o755)
 
     def _write_json(self):
-
-        _json_data= dict(job_id=self.job_id,
-                           workdir=str(self.workdir),
-                           job_script=self.job_script,
-                           batch_system=self._batch_system.type,
-                           datetime=self.submit_time.isoformat())
+        _json_data = dict(job_id=self.job_id,
+                          workdir=str(self.workdir),
+                          job_script=self.job_script,
+                          batch_system=self._batch_system.type,
+                          datetime=self.submit_time.isoformat())
         with (self.workdir / 'cluster.json').open('w') as f:
             json.dump(_json_data, f, indent=3, sort_keys=True)
 
@@ -165,14 +165,14 @@ class MPICluster:
         except FileNotFoundError:
             raise ValueError('Cluster has not been created.')
 
-        json_data['datetime'] =  datetime.strptime(json_data['datetime'],
-                                                   '%Y-%m-%dT%H:%M:%S.%f')
+        json_data['datetime'] = datetime.strptime(json_data['datetime'],
+                                                  '%Y-%m-%dT%H:%M:%S.%f')
         json_data['workdir'] = Path(json_data['workdir'])
         return json_data
 
     @classmethod
     def load(cls, workdir):
-        '''Load the information of a running cluster.
+        """Load the information of a running cluster.
 
         This method can be used to connect to an already running cluster.
 
@@ -192,8 +192,7 @@ class MPICluster:
         ------
 
         Instance of the MPICluster object: esm_analysis.MPICluster
-        '''
-
+        """
         workdir = Path(workdir)
         _json_data = cls._load(workdir)
         lookup = dict(slurm=Slurm)
@@ -216,9 +215,7 @@ class MPICluster:
 
     def __init__(self, script, workdir, submit_time=None, batch_system=None,
                  job_id=None):
-
-        '''Create a cluster using a given submit script.'''
-
+        """Create a cluster using a given submit script."""
         self.job_script = script
         self.submit_time = submit_time
         self.job_id = job_id
@@ -233,15 +230,11 @@ class MPICluster:
 
     @classmethod
     def slurm(cls, account, queue, *,
-                 workdir=None,
-                 walltime='01:00:00',
-                 cpus_per_task=48,
-                 name='dask_job',
-                 nworkers=1,
-                 job_extra=None):
+              workdir=None, walltime='01:00:00', cpus_per_task=48,
+              name='dask_job', nworkers=1, job_extra=None):
         """Create an MPI cluster using slurm.
 
-        This methd will setup a cluster with help of the workload manager slurm.
+        This method sets up a cluster with help of the workload manager slurm.
 
         ::
 
@@ -268,8 +261,8 @@ class MPICluster:
             name of the job
 
         workdir: str, optional (default: None)
-            name of the workdirectory, if None is given, a temporary directory is
-            used.
+            name of the workdirectory, if None is given, a temporary
+            directory is used.
 
         cpus_per_task: int, optional (default: 48)
             number of cpus per node
@@ -285,7 +278,6 @@ class MPICluster:
 
         Instance of the MPICluster object: esm_analysis.MPICluster
         """
-
         job_extra = job_extra or ''
         workdir = workdir or TemporaryDirectory().name
         workdir = Path(workdir)

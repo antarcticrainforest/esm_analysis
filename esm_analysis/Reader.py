@@ -1,4 +1,4 @@
-
+"""Collection to read datasets."""
 import datetime
 import hashlib
 import inspect
@@ -26,8 +26,10 @@ import toml
 import tqdm
 import xarray as xr
 
+
 def progress_bar(*futures, **kwargs):
     """Connect dask futures to tqdm progressbar.
+
     The probress_bar method gives you the ability to get some feedback while
     processing data.
 
@@ -47,16 +49,15 @@ def progress_bar(*futures, **kwargs):
         collections of (dask, concurrent) futures
 
     notebook: bool, optional (default: False)
-        whether or not to display a progress bar optimized for jupyter notebooks
+        whether or not to display a progress bar optimized for
+        jupyter notebooks
 
     bar_title: str, optional (default: Progress)
         Title of the progress bar
 
     kwargs:
         Additional keyword arguments passed to the tqdm object
-
     """
-
     notebook = kwargs.pop('notebook', None)
     bar_title = kwargs.pop('label', 'Progress')
     futures = futures_of(futures)
@@ -73,106 +74,135 @@ def progress_bar(*futures, **kwargs):
 
 
 class _BaseVariables(dict):
-   """Base Class to define Variable Name."""
+    """Base Class to define Variable Name."""
 
-   _base_variables = {'lon', 'lat', 'time', 'ps', 'psl', 'cosmu0', 'rsdt', 'rsut',
-                'rsutcs', 'rlut', 'rlutcs', 'rsds', 'rsdscs', 'rlds', 'rldscs',
-                'rsus', 'rsuscs', 'rlus', 'ts', 'sic', 'sit', 'albedo', 'clt',
-                'prlr', 'prls', 'prcr', 'prcs', 'pr', 'prw', 'cllvi', 'clivi',
-                'qgvi', 'qrvi', 'qsvi', 'hfls', 'hfss', 'evspsbl', 'tauu',
-                'tauv', 'sfcwind', 'uas', 'vas', 'tas', 'dew2', 'ptp',
-                'height', 'height_bnds', 'pfull', 'zg', 'rho', 'ta', 'ua',
-                'va', 'wap', 'hus', 'clw', 'cli', 'qg', 'qs', 'cl', 'cli_2', 'qr',
-                'tend_ta', 'tend_qhus', 'tend_ta_dyn', 'tend_qhus_dyn',
-                'tend_ta_phy', 'tend_qhus_phy', 'tend_ta_rlw', 'tend_ta_rsw',
-                'tend_ta_mig', 'tend_qhus_mig', 'tend_qclw_mig', 'tend_qcli_mig',
-                'tend_qqr_mig', 'tend_qqs_mig', 'tend_qqg_mig', 'tend_ddt_tend_t',
-                'tend_ddt_tend_qv', 'tend_ddt_tend_qc','tend_ddt_tend_qi',
-                'tend_ddt_tend_qr', 'tend_ddt_tend_qs', 'tend_ddt_tend_qg',
-                'tend_ta_vdf', 'tend_qhus_vdf', 'height', 'comsmu0', 'qi'}
-   _translate = zip(_base_variables, _base_variables)
+    _base_variables = {'lon', 'lat', 'time', 'ps', 'psl', 'cosmu0', 'rsdt',
+                       'rsut', 'rsutcs', 'rlut', 'rlutcs', 'rsds',
+                       'rsdscs', 'rlds', 'rldscs', 'rsus', 'rsuscs',
+                       'rlus', 'ts', 'sic', 'sit', 'albedo', 'clt',
+                       'prlr', 'prls', 'prcr', 'prcs', 'pr', 'prw', 'cllvi',
+                       'clivi', 'qgvi', 'qrvi', 'qsvi', 'hfls', 'hfss',
+                       'evspsbl', 'tauu', 'tauv', 'sfcwind', 'uas', 'vas',
+                       'tas', 'dew2', 'ptp', 'height', 'height_bnds',
+                       'pfull', 'zg', 'rho', 'ta', 'ua', 'va', 'wap', 'hus',
+                       'clw', 'cli', 'qg', 'qs', 'cl', 'cli_2', 'qr',
+                       'tend_ta', 'tend_qhus', 'tend_ta_dyn', 'tend_qhus_dyn',
+                       'tend_ta_phy', 'tend_qhus_phy', 'tend_ta_rlw',
+                       'tend_ta_rsw', 'tend_ta_mig', 'tend_qhus_mig',
+                       'tend_qclw_mig', 'tend_qcli_mig', 'tend_qqr_mig',
+                       'tend_qqs_mig', 'tend_qqg_mig', 'tend_ddt_tend_t',
+                       'tend_ddt_tend_qv', 'tend_ddt_tend_qc',
+                       'tend_ddt_tend_qi', 'tend_ddt_tend_qr',
+                       'tend_ddt_tend_qs', 'tend_ddt_tend_qg',
+                       'tend_ta_vdf', 'tend_qhus_vdf',
+                       'height', 'comsmu0', 'qi'}
+    _translate = zip(_base_variables, _base_variables)
 
-   def __init__(self):
-      """The base class is based on ECHAM / MPI-ICON variable name."""
-      for var1, var2 in self._translate:
-         self.__setattr__(var2, var1)
-         self[var2] = var1
+    def __init__(self):
+        """The base class is based on ECHAM / MPI-ICON variable name."""
+        for var1, var2 in self._translate:
+            self.__setattr__(var2, var1)
+            self[var2] = var1
 
-   def __getattr__(self, attr):
-      return self.get(attr, attr)
+    def __getattr__(self, attr):
+        return self.get(attr, attr)
 
-   def __getitem__(self, attr):
-      return self.__getattr__(attr)
+    def __getitem__(self, attr):
+        return self.__getattr__(attr)
+
 
 class DWD(_BaseVariables):
-   """Variable name Class for DWD version of ICON."""
+    """Variable name Class for DWD version of ICON."""
 
-   #             DWD-Name  , Base-Name
-   _translate = (('pres_sfc', 'ps'),
-                ('pres_msl', 'psl'),
-                ('rain_gsp_rate', 'pr'),
-                ('v', 'va'),
-                ('qv', 'hus'),
-                ('temp', 'ta'),
-                ('u', 'ua'),
-                ('rain_con_rate', 'prcr'),
-                ('snow_con_rate', 'prcs'),
-                ('z_mc', 'zg'),
-                ('snow_gsp_rate', 'prls'),
-                ('shfl_s', 'hfss'),
-                ('lhfl_s', 'hfls'),
-                ('omega', 'wap'),
-                ('sp_10m', 'sfcwind'),
-                ('t_2m', 'tas'),
-                ('tqv_dia','prw'),
-                ('pres', 'pfull'),
-                ('tqc_dia','cllvi'),
-                ('clct', 'clt'),
-                ('qc', 'clw'),
-                ('qi', 'cli'),
-                ('pres', 'pfull'),
-                ('tqi_dia','clivi'))
+    #             DWD-Name  , Base-Name
+    _translate = (
+                    ('pres_sfc', 'ps'),
+                    ('pres_msl', 'psl'),
+                    ('rain_gsp_rate', 'pr'),
+                    ('v', 'va'),
+                    ('qv', 'hus'),
+                    ('temp', 'ta'),
+                    ('u', 'ua'),
+                    ('rain_con_rate', 'prcr'),
+                    ('snow_con_rate', 'prcs'),
+                    ('z_mc', 'zg'),
+                    ('snow_gsp_rate', 'prls'),
+                    ('shfl_s', 'hfss'),
+                    ('lhfl_s', 'hfls'),
+                    ('omega', 'wap'),
+                    ('sp_10m', 'sfcwind'),
+                    ('t_2m', 'tas'),
+                    ('tqv_dia', 'prw'),
+                    ('pres', 'pfull'),
+                    ('tqc_dia', 'cllvi'),
+                    ('clct', 'clt'),
+                    ('qc', 'clw'),
+                    ('qi', 'cli'),
+                    ('pres', 'pfull'),
+                    ('tqi_dia', 'clivi')
+                 )
 
-   def __init__(self):
-      super().__init__()
+    def __init__(self):
+        super().__init__()
+
 
 class CMORPH(_BaseVariables):
-   """Variable name Class for CMORPH."""
-   #             CMPORPH-Name  , Base-Name
-   _translate = (('precip', 'pr'),)
+    """Variable name Class for CMORPH."""
 
-   def __init__(self):
-      super().__init__()
+    #             CMPORPH-Name  , Base-Name
+    _translate = (('precip', 'pr'),)
+
+    def __init__(self):
+        super().__init__()
+
 
 class MPI(_BaseVariables):
-   """Variable name Class for ECHAM / MPI version of ICON."""
+    """Variable name Class for ECHAM / MPI version of ICON."""
 
-   def __init__(self):
-      super().__init__()
+    def __init__(self):
+        super().__init__()
+
 
 class GenericModel(dict):
-   """Default dummy class - No lookup takes place."""
+    """Default dummy class - No lookup takes place."""
 
-   def __getattr__(self, attr):
-      return self.get(attr, attr)
+    def __getattr__(self, attr):
+        return self.get(attr, attr)
 
-   def __getitem__(self, attr):
-      return self.__getattr__(attr)
-
+    def __getitem__(self, attr):
+        return self.__getattr__(attr)
 
 
 ECHAM = MPI
 
-def lookup(setup):
-   if setup is None:
-       return GenericModel()
-   try:
-      LookupObj = getattr(sys.modules[__name__], setup)
-   except AttributeError:
-      raise KeyError('Model output type not found')
-   return LookupObj()
 
-__all__ = ['RunDirectory', 'lookup', 'Config', 'cdo', 'icon2datetime', 'progress_bar']
+def lookup(setup):
+    """Create a variable translator.
+
+    This methods creats a variable translator object based on a given
+    input setup.
+
+    Parameters
+    ----------
+
+    setup : str
+        The name of the input model
+
+    Returns
+    -------
+    Translator Object : esm_analysis.Reader._BaseVariables
+    """
+    if setup is None:
+        return GenericModel()
+    try:
+        LookupObj = getattr(sys.modules[__name__], setup)
+    except AttributeError:
+        raise KeyError('Model output type not found')
+    return LookupObj()
+
+
+__all__ = ('RunDirectory', 'lookup', 'Config', 'cdo',
+           'icon2datetime', 'progress_bar')
 
 
 def icon2datetime(icon_dates, start=None):
@@ -191,9 +221,8 @@ def icon2datetime(icon_dates, start=None):
     Returns
     -------
 
-        dates:  pd.Datetime
+        dates:  pd.DatetimeIndex
     """
-
     try:
         icon_dates = icon_dates.values
     except AttributeError:
@@ -203,12 +232,16 @@ def icon2datetime(icon_dates, start=None):
         icon_dates = icon_dates[:]
     except TypeError:
         icon_dates = np.array([icon_dates])
-    def convert(icon_date):
+
+    def _convert(icon_date):
         frac_day, date = np.modf(icon_date)
         frac_day *= 60**2 * 24
-        return datetime.datetime.strptime(str(int(date)), '%Y%m%d')\
-                + datetime.timedelta(seconds=int(frac_day.round(0)))
-    conv = np.vectorize(convert)
+        date = str(int(date))
+        date_str = datetime.datetime.strptime(date, '%Y%m%d')
+        td = datetime.timedelta(seconds=int(frac_day.round(0)))
+        return date_str + td
+
+    conv = np.vectorize(_convert)
     try:
         out = conv(icon_dates)
     except TypeError:
@@ -220,60 +253,72 @@ def icon2datetime(icon_dates, start=None):
 
 
 class Config:
-   """Configuration Object to save model setups."""
-   def __init__(self, toml_config_file):
-      """Load a configuration.
+    """Configuration Object to save model setups."""
 
-      ::
+    def __init__(self, toml_config_file):
+        """Load a configuration.
+
+        ::
             model_setup = Config('model_setup.toml')
 
-      Read a toml configuration file and save the config for access into
-      a pandas dataframe. The configuration in the toml file must be saved
-      under the 'config' key.
+        Read a toml configuration file and save the config for access into
+        a pandas dataframe. The configuration in the toml file must be saved
+        under the 'config' key.
 
-      Parameters
-      ----------
+        Parameters
+        ----------
 
-       toml_config_file : str
+        toml_config_file : str
                           File name of the toml configuration file.
                           The configuration must be saved under the 'config'
                           key in the toml file.
-     Returns
-     -------
+        Returns
+        -------
 
-      Data Frame of containing model stups: pandas.core.frame.DataFrame
-      """
+        Data Frame of containing model stups: pandas.core.frame.DataFrame
+        """
+        self._config = toml.load(toml_config_file)
+        try:
+            self._table = pd.DataFrame(self._config['config'].values(),
+                                       index=self._config['config'].keys(),
+                                       columns=['Description'])
+        except KeyError:
+            self._table = pd.DataFrame({})
 
-      self._config = toml.load(toml_config_file)
-      try:
-         self._table = pd.DataFrame(self._config['config'].values(),
-                                    index=self._config['config'].keys(),
-                                    columns=['Description'])
-      except KeyError:
-         self._table = pd.DataFrame({})
-
-   def __repr__(self):
+    def __repr__(self):
+        """Return a pandas dataframe."""
         return self._table.__repr__()
 
-   def _repr_html_(self):
+    def _repr_html_(self):
         return self._table.style._repr_html_()
 
-   @property
-   def setup(self):
-       return self._table
+    @property
+    def setup(self):
+        """Get the model setup."""
+        return self._table
+
 
 _cache_dir = (Path('~')/'.cache'/'esm_analysis').expanduser()
 _cache_dir.mkdir(parents=True, exist_ok=True)
 
+
 class RunDirectory:
+    """Open data in experiment folder."""
 
     weightfile = None
     griddes = None
 
     def __enter__(self):
+        """Create enter method.
+
+        The enter method just returns the object it self. It is used
+        to work along the with __exit__ method that closes a distributed
+        worker.
+        """
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close the distributed client befor exiting."""
         self.close_client()
 
     def __init__(self,
@@ -285,6 +330,7 @@ class RunDirectory:
                  filetype='nc',
                  client=None):
         """Create an RunDirecotry object from a given input directory.
+
         ::
 
             run = RunDirectory('/work/mh0066/precip-project/3-hourly/CMORPH')
@@ -333,7 +379,7 @@ class RunDirectory:
             self.name_list = {}
             for nml_file in Path(run_dir).rglob(nml_file):
                 self.name_list = {**self.name_list,
-                                  **f90nml.read(str(run_dir/ nml_file))}
+                                  **f90nml.read(str(run_dir / nml_file))}
             self.name_list['output'] = self._get_files(run_dir, filetype)
             self.name_list['weightfile'] = None
             self.name_list['gridfile'] = self.griddes
@@ -350,19 +396,20 @@ class RunDirectory:
         hash_str = str(hash_obj.hexdigest())
         return _cache_dir / Path('run_info_{}.json'.format(hash_str))
 
-
     @staticmethod
     def _get_files(run_dir, extensions):
-       """Get all netcdf filenames."""
-       ext_str = ''.join(['[{}{}]'.format(l.lower(), l.upper()) for l in extensions])
-       pat = re.compile('^(?!.*restart|.*remap).*{}'.format(ext_str))
-       glob_pad = '*.{}'.format(ext_str)
-       result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad) \
-                             if re.match(pat, f.as_posix())])
-       return result
+        """Get all netcdf filenames."""
+        ext_str = ''.join(['[{}{}]'.format(l.lower(), l.upper())
+                          for l in extensions])
+        pat = re.compile('^(?!.*restart|.*remap).*{}'.format(ext_str))
+        glob_pad = '*.{}'.format(ext_str)
+        result = sorted([f.as_posix() for f in Path(run_dir).rglob(glob_pad)
+                        if re.match(pat, f.as_posix())])
+        return result
 
     @staticmethod
-    def _remap(infile, out_dir=None, griddes=None, weightfile=None, method=None, gridfile=None, options=None):
+    def _remap(infile, out_dir=None, griddes=None, weightfile=None,
+               method=None, gridfile=None, options=None):
         options = options or '-f nc4'
         if isinstance(infile, (str, Path)):
             infile = Path(infile)
@@ -381,7 +428,9 @@ class RunDirectory:
                 cdo_str += ' -setgrid,'+str(gridfile)
 
             if isinstance(infile, xr.DataArray):
-                _ = xr.Dataset(data_vars={infile.name: infile}).to_netcdf(tf_in.name)
+                _ = xr.Dataset(
+                        data_vars={infile.name: infile}
+                        ).to_netcdf(tf_in.name)
                 kwargs = dict(returnXArray=infile.name)
                 infile = Path(tf_in.name)
             elif isinstance(infile, xr.Dataset):
@@ -391,7 +440,8 @@ class RunDirectory:
             else:
                 kwargs = dict(output=str(out_file), options=options)
 
-            out = remap_func('{} {}'.format(str(cdo_str), str(infile)), **kwargs)
+            out = remap_func('{} {}'.format(str(cdo_str), str(infile)),
+                             **kwargs)
             try:
                 return out.compute()
             except AttributeError:
@@ -399,10 +449,12 @@ class RunDirectory:
 
     @property
     def run_dir(self):
+        """Get the name of the experiment path."""
         return Path(self.name_list['run_dir'])
 
     @property
     def files(self):
+        """Return all files that have been opened."""
         return pd.Series(self.name_list['output'])
 
     @staticmethod
@@ -411,57 +463,57 @@ class RunDirectory:
                        args=None,
                        client=None,
                        **kwargs):
-       """Apply function to given collection.
+        """Apply function to given collection.
 
-       ::
+        ::
 
-           result = run.apply_function(lambda dest, v: dset[v].sum(dim='time'), run.dataset, args=('temp',))
+            result = run.apply_function(lambda d, v: d[v].sum(dim='time'),
+                                        run.dataset, args=('temp',))
 
-       Parameters
-       ----------
+        Parameters
+        ----------
 
-       mappable: method
+        mappable: method
             method that is applied
 
-       collection: collection
+        collection: collection
             collection that is distributed in a thread pool
 
-       args:
+        args:
             additional arguments passed into the method
 
-       client: dask distributed client (default: None)
+        client: dask distributed client (default: None)
             worker scheduler client that submits the jobs. If None is given
             a new client is started
 
-       **kwargs: optional
+        **kwargs: optional
             additional keyword arguments controlling the progress bar parameter
 
-       Returns
-       -------
+        Returns
+        -------
 
-          combined output of the thread-pool processes: collection
-       """
-
-       client = client or Client()
-       args = args or ()
-       if isinstance(collection, (xr.DataArray, xr.Dataset)):
-           tasks = [(client.scatter(collection), *args)]
-       else:
-           tasks = [(client.scatter(entry), *args) for entry in collection]
-       futures = [client.submit(mappable, *task) for task in tasks]
-       progress_bar(futures, **kwargs)
-       output = client.gather(futures)
-       if len(output) == 1: # Possibly only one job was submitted
-           return output[0]
-       return output
+            combined output of the thread-pool processes: collection
+        """
+        client = client or Client()
+        args = args or ()
+        if isinstance(collection, (xr.DataArray, xr.Dataset)):
+            tasks = [(client.scatter(collection), *args)]
+        else:
+            tasks = [(client.scatter(entry), *args) for entry in collection]
+        futures = [client.submit(mappable, *task) for task in tasks]
+        progress_bar(futures, **kwargs)
+        output = client.gather(futures)
+        if len(output) == 1:  # Possibly only one job was submitted
+            return output[0]
+        return output
 
     def close_client(self):
-       """Close the opened dask client."""
-       self.dask_client.close()
+        """Close the opened dask client."""
+        self.dask_client.close()
 
     def restart_client(self):
-       """Restart the opened dask client."""
-       self.dask_client.restart()
+        """Restart the opened dask client."""
+        self.dask_client.restart()
 
     @property
     def status(self):
@@ -471,7 +523,7 @@ class RunDirectory:
     def remap(self,
               grid_description,
               inp=None,
-              out_dir=None,*,
+              out_dir=None, *,
               method='weighted',
               weightfile=None,
               options='-f nc4',
@@ -494,7 +546,7 @@ class RunDirectory:
                      Path to file containing grid weights
         method: str (default: weighted)
                  Remap method that is applyied to the data, can be either
-                 weighted (default), bil, con, laf, nn. Not if weighted is chosen
+                 weighted (default), bil, con, laf, nn. If weighted is chosen
                  this class should have been instanciated either with a given
                  weightfile or using the gen_weights methods.
         weightfile: str (default: None)
@@ -507,30 +559,35 @@ class RunDirectory:
 
         Returns
         -------
-        Collection of same type as input: (str, xarray.DataArray, xarray.Dataset)
+        Collection of output: (str, xarray.DataArray, xarray.Dataset)
         """
         out_dir = out_dir or Path('/tmp')
         Path(out_dir).absolute().mkdir(exist_ok=True, parents=True)
-        impl_methods = ('weighted', 'remapbil','remapcon', 'remaplaf', 'remapnn')
+        impl_methods = ('weighted', 'remapbil', 'remapcon', 'remaplaf',
+                        'remapnn')
         weightfile = weightfile or self.weightfile
         if method not in impl_methods:
-           raise NotImplementedError('Method not available. Currently implemented'
-                                     ' methods are weighted, remapbil, remapcon, remaplaf, remapnn')
+            raise NotImplementedError('Method not available.'
+                                      ' Currently implemented'
+                                      ' methods are:'
+                                      'weighted, remapbil, '
+                                      'remapcon, remaplaf, remapnn')
         if weightfile is None and method == 'weighted':
-           raise ValueError('No weightfile was given, either choose different'
-                            ' remapping method or instanciated the Reader object'
-                            ' by providing a weightfile or generate a weightfile'
-                            ' by calling the gen_weights methods')
+            raise ValueError('No weightfile was given, either choose different'
+                             ' remapping method or instanciated the Reader'
+                             ' object by providing a weightfile or generate '
+                             'a weightfile by calling the gen_weights methods')
 
-        args = (Path(out_dir), grid_description, weightfile, method, grid_file, options)
+        args = (Path(out_dir), grid_description, weightfile, method,
+                grid_file, options)
         run_dir = self.name_list['run_dir']
         if inp is None:
             inp = self.files
         elif isinstance(inp, (str, Path)):
-           if not Path(inp).is_file():
-               inp = sorted([f for f in Path(run_dir).rglob(inp)])
-           else:
-               inp = (inp, )
+            if not Path(inp).is_file():
+                inp = sorted([f for f in Path(run_dir).rglob(inp)])
+            else:
+                inp = (inp, )
         if len(inp) == 0:
             raise FileNotFoundError('No files for remapping found')
         return self.apply_function(self._remap, inp,
@@ -550,17 +607,19 @@ class RunDirectory:
     @classmethod
     def gen_weights(cls,
                     griddes,
-                    run_dir,* ,
+                    run_dir, *,
                     prefix=None,
                     model_type='ECHAM',
                     infile=None,
                     overwrite=False,
                     client=None):
-        """Create grid weigths from given grid description and instanciate class.
+        """Create grid weigths from grid description and instanciate class.
 
         ::
 
-            run = RunDirectory.gen_weights('echam_grid.txt', '/work/mh0066/precip-project/3-hourly/CMORPH/', infile='griddes.nc')
+            run = RunDirectory.gen_weights('echam_grid.txt',
+                            '/work/mh0066/precip-project/3-hourly/CMORPH/',
+                            infile='griddes.nc')
 
         Parameters
         ----------
@@ -585,27 +644,27 @@ class RunDirectory:
             RunDirectory: RunDirectory object
         """
         try:
-           out_file = [f for f in Path(run_dir).absolute().rglob('*2d*.nc')][0]
+            out_file = [f for f in Path(run_dir).absolute().rglob('*2d*.nc')][0]
         except IndexError:
-           try:
-              out_file = [f for f in Path(run_dir).absolute().rglob('*.nc')][0]
-           except IndexError:
-              raise FileNotFoundError('Run Directory is empty')
+            try:
+                out_file = [f for f in Path(run_dir).absolute().rglob('*.nc')][0]
+            except IndexError:
+                raise FileNotFoundError('Run Directory is empty')
 
         def get_input(rundir, inp_file):
-           for file in (inp_file,
-                        op.join(rundir, 'o3_icon_DOM01.nc'),
-                        op.join(rundir,      'bc_ozone.nc')):
-               if op.isfile(str(file)):
-                   return inp_file
+            for file in (inp_file,
+                         op.join(rundir, 'o3_icon_DOM01.nc'),
+                         op.join(rundir,      'bc_ozone.nc')):
+                if op.isfile(str(file)):
+                    return inp_file
 
         input_file = get_input(run_dir, infile)
         weight_file = op.abspath(op.join(run_dir, 'remapweights.nc'))
         if overwrite or not os.path.isfile(weight_file):
-            weight_file = cdo.gendis('{} -setgrid,{} {}'.format(op.abspath(griddes),
-                                                            input_file,
-                                                            out_file),
-                                     output=weight_file)
+            cmd = '{} -setgrid,{} {}'.format(op.abspath(griddes),
+                                             input_file,
+                                             out_file)
+            weight_file = cdo.gendis(cmd, output=weight_file)
         cls.gridfile = griddes
         cls.weightfile = op.abspath(weight_file)
         return cls(run_dir, prefix=prefix,
@@ -641,13 +700,12 @@ class RunDirectory:
 
     def _get_files_from_glob_pattern(self, filenames):
         """Construct filename to read."""
-
         if isinstance(filenames, (str, Path)):
-            ncfiles = [filenames,]
+            ncfiles = [filenames, ]
         elif filenames is None:
             return None
         else:
-           ncfiles = list(filenames)
+            ncfiles = list(filenames)
         read_files = []
         for in_file in ncfiles:
             if op.isfile(in_file):

@@ -1,8 +1,12 @@
+"""Collection of methods to calculated atmospheric variables."""
+
 import numpy as np
 
-__all__ = ['calc_rh', 'calc_sathum', 'calc_satpres']
+__all__ = ('calc_rh', 'calc_sathum', 'calc_satpres')
 
-def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa', percentage=True, mixing_r=False):
+
+def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa',
+            percentage=True, mixing_r=False):
     """Calculate Realtive Humidity.
 
     Parameters
@@ -34,11 +38,13 @@ def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa', percentage=True, mixi
 
         Relative Humidity: float/nd-array
     """
-    qs = calc_sathum(temp, pres, temp_unit=temp_unit, pres_unit=pres_unit, mixing_r=mixing_r)
+    qs = calc_sathum(temp, pres, temp_unit=temp_unit,
+                     pres_unit=pres_unit, mixing_r=mixing_r)
     if percentage is True:
         return 100 * q / qs
     else:
         return q / qs
+
 
 def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
     """Calculate Saturation Humidity.
@@ -70,11 +76,12 @@ def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
     es = calc_satpres(temp, unit=temp_unit)
     if pres_unit.lower().startswith('p'):
         es *= 100
-    r_v = 0.622 * es / ( pres - es )
+    r_v = 0.622 * es / (pres - es)
     if mixing_r:
         return r_v
     else:
         return r_v / (1 + r_v)
+
 
 def calc_satpres(temp, unit='K'):
     """Calculate saturation presure.
@@ -97,4 +104,4 @@ def calc_satpres(temp, unit='K'):
         add = 273.15
     else:
         add = 0
-    return 6.112 * np.exp(( 17.62 * ( temp-add ) )/ ( (temp-add) + 243.12))
+    return 6.112 * np.exp((17.62 * (temp-add)) / ((temp-add) + 243.12))
