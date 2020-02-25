@@ -86,15 +86,14 @@ class _Slurm:
         """Close down a cluster with a given job_id."""
         if job_id is None:
             return
-        run([self.cancel_cmd, job_id], stdout=PIPE, check=True, shell=True)
+        run([self.cancel_cmd, job_id], stdout=PIPE, check=True)  # nosec
 
     def check(self, job_id):
         """Check the status of a running cluster."""
         if job_id is None:
             return None, None, None
-        res = run([self.check_cmd, '-j {}'.format(job_id)],
-                  check=True, shell=True,
-                  stdout=PIPE).stdout.decode('utf-8').split('\n')
+        res = run([self.check_cmd, '-j {}'.format(job_id)], check=True,
+                  stdout=PIPE).stdout.decode('utf-8').split('\n') # nosec
         if len(res) < 2:
             return None, None, None
         status = [line.split() for line in res]
@@ -227,7 +226,7 @@ class MPICluster:
     def _submit(self):
 
         res = run([self._batch_system.submit_cmd, str(self.script_path)],
-                  cwd=str(self.workdir), stdout=PIPE, check=True, shell=True)
+                  cwd=str(self.workdir), stdout=PIPE, check=True)  # nosec
         job_id, _, _cluster = res.stdout.decode('utf-8').strip().partition(';')
         return job_id.split(" ")[-1]
 
