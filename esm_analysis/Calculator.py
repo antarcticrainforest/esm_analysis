@@ -44,8 +44,7 @@ def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa',
                      pres_unit=pres_unit, mixing_r=mixing_r)
     if percentage is True:
         return 100 * q / qs
-    else:
-        return q / qs
+    return q / qs
 
 
 def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):

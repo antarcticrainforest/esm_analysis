@@ -74,13 +74,13 @@ class ProfilePlotter(BuildWidget):
         self.step_variables = []
         if self.cbar_args['cbar_mode'].lower() != 'each':
             _link = True
-        for (dset, varn, step_dim) in zip(self.datasets,
+        for (dset, varn, step_d) in zip(self.datasets,
                                           self.varnames,
                                           self.step_dims):
-            if isinstance(step_dim, str):
-                self.step_variables.append(step_dim)
-            elif isinstance(step_dim, (int, float)):
-                self.step_variables.append(dset[varn].dims[step_dim])
+            if isinstance(step_d, str):
+                self.step_variables.append(step_d)
+            elif isinstance(step_d, (int, float)):
+                self.step_variables.append(dset[varn].dims[step_d])
             else:
                 self.step_variables.append(None)
 
@@ -230,7 +230,7 @@ class ProfilePlotter(BuildWidget):
                                      right=.9,
                                      left=0.05)
 
-        for i in range(len(data)):
+        for i, _ in enumerate(data):
             if self.data_dim == 'y' or self.data_dim == 'Y':
                 y = data[i]
                 x = self.get_secondary(self.second_vars[i], i)
@@ -280,7 +280,7 @@ class ProfilePlotter(BuildWidget):
         for wdg in [self.sl] + self.val_sliders:
             display(wdg)
 
-    def _update_2dplot(self, cmap='viridis', **kwargs):
+    def _update_2dplot(self, **kwargs):
         """Update the plotted image."""
         data = self.get_data()
         if self.fig is None:
@@ -399,9 +399,8 @@ class ProfilePlotter(BuildWidget):
     @classmethod
     def profile_1d(cls, datasets, xvars, yvars,
                    figsize=None, apply_funcs=None, data_dim='y',
-                   vmax=None, vmin=None, linewidth=2,
-                   stepsize=None, invert_yaxis=True, sel_slice=None,
-                   cbar_args=None, step_dim=0, avg_dims=(1,),
+                   linewidth=2, stepsize=None, invert_yaxis=True,
+                   sel_slice=None, cbar_args=None, step_dim=0, avg_dims=(1,),
                    **kwargs):
         """
         Create a 2D Profile (cross section) plot.
@@ -456,7 +455,7 @@ class ProfilePlotter(BuildWidget):
         """
         cls.xvars = _check(datasets, xvars)
         apply_funcs = _check(datasets, apply_funcs, accpet_none=False)
-        if data_dim == 'y' or data_dim == 'Y':
+        if data_dim in ('Y', 'y'):
             apply_func = apply_funcs[1]
             cls.apply_second = apply_funcs[0]
             varnames = yvars

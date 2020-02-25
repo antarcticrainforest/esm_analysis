@@ -44,7 +44,7 @@ def test_load_data(mock_timedir):
         assert (run.variables['tas'] in run.dataset.keys()) is True
         assert run.dataset[run.variables['tas']].shape == (240, 512)
     with RunDirectory(mock_timedir, f90name_list=('blabla')) as run:
-        assert isinstance(run.variables,  GenericModel)
+        assert isinstance(run.variables,  GenericModel) is True
         assert run.variables['pr'] == 'pr'
         assert run.variables.pr == 'pr'
 

@@ -18,8 +18,7 @@ def _check(datasets, check_container, warn=None, accpet_none=True):
     try:
         if len(datasets) > len(check_container):
             if warn:
-                UserWarning('datasets have more entries than {}, '
-                            'duplicating {}'.format(warn, warn))
+                UserWarning('more {} than datasets given.'.format(warn))
             diff = len(datasets) - len(check_container)
             check_container += diff * [check_container[-1]]
         elif len(datasets) < len(check_container):
@@ -251,8 +250,8 @@ class BuildWidget:
         self.clim_setter(vmin, vmax, num)
 
     def _cmap_observer(self, sel):
-        num = sel['owner'].num
         """Update the colormap."""
+        num = sel['owner'].num
         try:
             cmap_val = str(sel['new'])
         except KeyError:
@@ -274,7 +273,7 @@ class BuildWidget:
             # the figure transform goes from relative coords->pixels and we
             # want the inverse of that
             bbox = bbox.inverse_transformed(self.fig.transFigure)
-            bboxes.append(bboxi)
+            bboxes.append(bbox)
 
         # this is the bbox that bounds all the bboxes, again in relative
         # figure coords
@@ -284,7 +283,7 @@ class BuildWidget:
             self.fig.subplots_adjust(left=1.1*bbox.width)  # pad a little
 
     @staticmethod
-    def colorbar(mappable, vmin, vmax, draw=True):
+    def colorbar(mappable):
         """Create the colorbar."""
         ax = mappable.axes
         fig = ax.figure

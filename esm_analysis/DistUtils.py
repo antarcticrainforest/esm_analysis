@@ -79,11 +79,11 @@ class Slurm(BatchBase):
             return
         run([self.cancel_cmd, job_id], stdout=PIPE, check=True)
 
-    def check(self, job_id, simple=True, color=True):
+    def check(self, job_id):
         """Check the status of a running cluster."""
         if job_id is None:
             return None, None, None
-        res = run([self.check_cmd, '-j {}'.format(job_id)],
+        res = run([self.check_cmd, '-j {}'.format(job_id)], check=True,
                   stdout=PIPE).stdout.decode('utf-8').split('\n')
         if len(res) < 2:
             return None, None, None

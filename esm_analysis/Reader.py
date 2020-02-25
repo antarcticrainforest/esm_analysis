@@ -212,7 +212,7 @@ __all__ = ('RunDirectory', 'lookup', 'Config', 'cdo',
            'icon2datetime', 'progress_bar')
 
 
-def icon2datetime(icon_dates, start=None):
+def icon2datetime(icon_dates):
     """
     Convert datetime objects in icon format to python datetime objects.
 
@@ -256,8 +256,7 @@ def icon2datetime(icon_dates, start=None):
         out = icon_dates
     if len(out) == 1:
         return pd.DatetimeIndex(out)[0]
-    else:
-        return pd.DatetimeIndex(out)
+    return pd.DatetimeIndex(out)
 
 
 class Config:
@@ -679,6 +678,7 @@ class RunDirectory:
                          op.join(rundir,      'bc_ozone.nc')):
                 if op.isfile(str(file)):
                     return inp_file
+            return ''
 
         input_file = get_input(run_dir, infile)
         weight_file = op.abspath(op.join(run_dir, 'remapweights.nc'))
