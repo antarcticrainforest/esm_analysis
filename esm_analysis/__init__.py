@@ -1,6 +1,5 @@
 # coding: utf-8
-"""
-The esm-analysis package.
+"""The esm-analysis package.
 
 Copyright (c) 2019, Martin Bergemann
 All rights reserved.

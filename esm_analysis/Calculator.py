@@ -103,6 +103,7 @@ def calc_satpres(temp, unit='K'):
     -------
 
         Saturation Pressure in hPa: float/nd-array
+
     """
     if unit.lower().startswith('k'):
         add = 273.15

@@ -9,8 +9,7 @@ __all__ = ('clear_cache_dir',)
 
 
 def clear_cache_dir():
-    """
-    Empty the cache directory.
+    """Empty the cache directory.
 
     esm_analysis serializes run information and pickled datasets in the users
     cache directory (~/.cache/esm_analysis). To empty the cache directory, i.e

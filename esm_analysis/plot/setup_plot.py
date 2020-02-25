@@ -2,8 +2,6 @@
 import math
 
 from ipywidgets import widgets, Layout
-from IPython.display import display
-from matplotlib import pyplot as plt
 from matplotlib import cm
 import matplotlib.transforms as mtransforms
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -26,8 +24,8 @@ def _check(datasets, check_container, warn=None, accpet_none=True):
             check_container += diff * [check_container[-1]]
         elif len(datasets) < len(check_container):
             if warn:
-                UserWarning('more {} than datasets given, dropping ',
-                            'exceeding {}'.format(warn, warn))
+                UserWarning('more {} than datasets given, '.format(warn)
+                            'dropping exceeding {}'.format(warn))
             check_container = check_container[:len(datasets)]
     except TypeError:
         pass
@@ -87,7 +85,6 @@ def _read_data(dataset, varname, step_var, sel_slice, avg_dim, tstep, dim):
             except KeyError:
                 raise ValueError('Could not find step_variable in dataset')
 
-        step_var_idx = dataset[varname].dims.index(step_var)
         dset = dataset[varname][{step_var: tstep}]
     if len(dset.shape) == dim:
         # There is not much more to do here:
@@ -265,19 +262,19 @@ class BuildWidget:
         try:
             cmap = getattr(cm, cmap_val)
         except AttributeError:
-            cmap = getattr(cm2, cmap_val)
+            cmap = getattr(cm, cmap_val)
         except ValueError:
             return
-            cmap = gettr(cm2, cmap_val)
         self.cmap_setter(cmap, num)
 
-    def auto_adjust(self, lables):
+    def auto_adjust(self, labels):
         """Do automatic adjustment of the subplots."""
+        bboxes = []
         for label in labels:
             bbox = label.get_window_extent()
             # the figure transform goes from relative coords->pixels and we
             # want the inverse of that
-            bboxi = bbox.inverse_transformed(self.fig.transFigure)
+            bbox = bbox.inverse_transformed(self.fig.transFigure)
             bboxes.append(bboxi)
 
         # this is the bbox that bounds all the bboxes, again in relative
@@ -290,7 +287,6 @@ class BuildWidget:
     @staticmethod
     def colorbar(mappable, vmin, vmax, draw=True):
         """Create the colorbar."""
-        cbar_ticks = np.linspace(vmin, vmax, 6)
         ax = mappable.axes
         fig = ax.figure
         divider = make_axes_locatable(ax)
