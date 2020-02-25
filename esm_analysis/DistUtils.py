@@ -280,10 +280,10 @@ class MPICluster:
         job_extra: str, optional (default: None)
             additional commands that should be executed in the run sript
 
-        Return
-        ------
+        Returns
+        -------
 
-        Instance of the MPICluster object: esm_analysis.MPICluster
+            Instance of the MPICluster object: esm_analysis.MPICluster
 
         """
         job_extra = job_extra or ''
