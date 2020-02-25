@@ -4,12 +4,10 @@ import numpy as np
 
 def test_calc_rh(rh, spec_hum, mixing_r, temp_c, pres, esm_analysis):
     """Test for rel. humidity."""
-    rel_hum = esm_analysis.calc_rh(spec_hum, temp_c + 273.15,
-                                   pres, percentage=False)
-    np.testing.assert_allclose(rel_hum, rh/100., rtol=1e-04)
+    rel_hum = esm_analysis.calc_rh(spec_hum, temp_c + 273.15, pres)
+    np.testing.assert_allclose(rel_hum, rh, rtol=1e-04)
 
-    rel_hum = esm_analysis.calc_rh(spec_hum, temp_c, pres,
-                                   temp_unit='C', percentage=True)
+    rel_hum = esm_analysis.calc_rh(spec_hum, temp_c, pres, temp_unit='C')
     np.testing.assert_allclose(rel_hum,  rh, rtol=1e-04)
 
     rel_hum = esm_analysis.calc_rh(spec_hum, temp_c, pres * 100,

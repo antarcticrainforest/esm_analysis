@@ -678,7 +678,6 @@ class RunDirectory:
                          op.join(rundir,      'bc_ozone.nc')):
                 if op.isfile(str(file)):
                     return inp_file
-            return ''
 
         input_file = get_input(run_dir, infile)
         weight_file = op.abspath(op.join(run_dir, 'remapweights.nc'))

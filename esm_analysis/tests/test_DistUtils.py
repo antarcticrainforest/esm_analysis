@@ -38,7 +38,9 @@ def test_loadCluster(mock_slurm, mock_workdir, monkeypatch):
     assert Cluster._repr_html_() == '<p>No cluster running<p>'
 
 
-def test_loadNonExistingCluster(mock_slurm):
+def test_loadNonExistingCluster(mock_slurm, mock_workdir):
     """Test loading a cluster without information."""
+    with pytest.raises(ValueError):
+        Cluster = MPICluster.load(mock_workdir)
     with pytest.raises(ValueError):
         MPICluster.load('.')

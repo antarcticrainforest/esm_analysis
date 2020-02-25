@@ -5,8 +5,7 @@ import numpy as np
 __all__ = ('calc_rh', 'calc_sathum', 'calc_satpres')
 
 
-def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa',
-            percentage=True, mixing_r=False):
+def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa'):
     """
     Calculate Realtive Humidity.
 
@@ -28,26 +27,19 @@ def calc_rh(q, temp, pres, temp_unit='K', pres_unit='hPa',
     pres_unit: str, optional (default: hPa)
         Pressure unit (hPa: ha Pascal, Pa: Pascal)
 
-    percentage: bool, optional (default: True)
-        Return RH in percent
-
-    mixing_r: bool, optional (default: False)
-        humidit is mixing ratio instead of specific humidity
 
     Returns
     -------
 
-        Relative Humidity: float/nd-array
+        Relative Humidity in percent: float/nd-array
 
     """
     qs = calc_sathum(temp, pres, temp_unit=temp_unit,
-                     pres_unit=pres_unit, mixing_r=mixing_r)
-    if percentage is True:
-        return 100 * q / qs
-    return q / qs
+                     pres_unit=pres_unit)
+    return 100 * q / qs
 
 
-def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
+def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa'):
     """
     Calculate Saturation Humidity.
 
@@ -66,9 +58,6 @@ def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
     pres_unit: str, optional (default: hPa)
         Pressure unit (hPa: ha Pascal, Pa: Pascal)
 
-    mixing_r: bool, optional (default: False)
-        humidit is mixing ratio instead of specific humidity
-
     Returns
     -------
 
@@ -79,10 +68,7 @@ def calc_sathum(temp, pres, temp_unit='K', pres_unit='hPa', mixing_r=False):
     if pres_unit.lower().startswith('p'):
         es *= 100
     r_v = 0.622 * es / (pres - es)
-    if mixing_r:
-        return r_v
-    else:
-        return r_v / (1 + r_v)
+    return r_v / (1 + r_v)
 
 
 def calc_satpres(temp, unit='K'):
