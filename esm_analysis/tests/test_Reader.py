@@ -3,8 +3,6 @@ from pathlib import Path
 
 import pytest
 import numpy as np
-from testpath import assert_isfile
-from unittest import mock
 
 from esm_analysis import (Config, icon2datetime, lookup,
                           RunDirectory, progress_bar)
@@ -13,7 +11,6 @@ from esm_analysis import (Config, icon2datetime, lookup,
 def test_icon2datetime(mock_dataset):
     """Test icon2datetime."""
     import pandas as pd
-    import xarray as xr
     pd_conf = icon2datetime(mock_dataset.time)
     assert isinstance(pd_conf, pd.DatetimeIndex)
     timesteps = [20091027.5, 20101027.5]  # 27th October 2009/2010 12 Noon
@@ -153,10 +150,11 @@ def test_lookup():
     """Testing the variable tranlation."""
     from esm_analysis.Reader import MPI, CMORPH
     echam_setup = lookup('MPI')
-    assert type(echam_setup) == MPI
+    assert isinstance(echam_setup,  MPI) is True
     assert list(echam_setup.values()) == list(echam_setup.keys())
 
     cmorph_setup = lookup('CMORPH')
+    assert isinstance(cmorph_setup, CMORPH) is True
     assert cmorph_setup['pr'] == 'precip'
     # Smoke test
     assert cmorph_setup['ta'] == 'ta'

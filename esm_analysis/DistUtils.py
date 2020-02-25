@@ -54,7 +54,6 @@ export OMPI_MCA_coll=^ghc
 
 
 class BatchBase:
-
     """Base class defining batch commands."""
 
     type = None
@@ -65,7 +64,6 @@ class BatchBase:
 
 
 class Slurm(BatchBase):
-
     """Definitions to work with the slurm workload manager."""
 
     type = 'slurm'
@@ -97,7 +95,6 @@ class Slurm(BatchBase):
 
 
 class MPICluster:
-
     """Create Cluster of distrbuted workers."""
 
     def close(self):
@@ -193,10 +190,10 @@ class MPICluster:
             is stored. The information on the work directory can be retrieved
             by calling the workdir property
 
-        Return
-        ------
+        Returns
+        -------
 
-        Instance of the MPICluster object: esm_analysis.MPICluster
+            Instance of the MPICluster object: esm_analysis.MPICluster
 
         """
         workdir = Path(workdir)
