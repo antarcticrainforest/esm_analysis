@@ -57,7 +57,7 @@ setup(name="esm_analysis",
               'ipython',  # For nbsphinx syntax highlighting
               'sphinxcontrib_github_alt',
               ],
-       'test': [
+        'test': [
               'pytest',
               'pytest-cov',
               'nbval',
@@ -80,4 +80,4 @@ setup(name="esm_analysis",
           'Topic :: Scientific/Engineering :: Data Analysis',
           'Topic :: Scientific/Engineering :: Earth Sciences',
       ]
-)
+      )
