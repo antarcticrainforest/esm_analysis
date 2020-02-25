@@ -1,22 +1,20 @@
 """Collection to read datasets."""
 import datetime
 import hashlib
-import inspect
 import json
-import multiprocessing as mp
 import os
 import os.path as op
 from pathlib import Path
 import re
 import sys
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 
 try:
     from cdo import Cdo
     cdo = Cdo()
 except FileNotFoundError:
     cdo = {}
-from dask.distributed import (as_completed, Client, progress, utils)
+from dask.distributed import (as_completed, Client)
 from distributed.diagnostics.progressbar import (futures_of, is_kernel)
 
 import f90nml
@@ -198,7 +196,7 @@ def lookup(setup):
 
     Returns
     -------
-    Translator Object : esm_analysis.Reader._BaseVariables
+        Translator Object : esm_analysis.Reader._BaseVariables
 
     """
     if setup is None:
@@ -287,7 +285,7 @@ class Config:
         Returns
         -------
 
-        Data Frame of containing model stups: pandas.core.frame.DataFrame
+            Data Frame of containing model stups: pandas.core.frame.DataFrame
 
         """
         self._config = toml.load(toml_config_file)
@@ -555,6 +553,7 @@ class RunDirectory:
 
         Parameters
         ----------
+
         grid_description: str
                           Path to file containing the output grid description
         inp: (collection of) str, xarray.Dataset, xarray.DataArray
@@ -578,10 +577,11 @@ class RunDirectory:
 
         Returns
         -------
-        Collection of output: (str, xarray.DataArray, xarray.Dataset)
+
+            Collection of output: (str, xarray.DataArray, xarray.Dataset)
 
         """
-        out_dir = out_dir or Path('/tmp')
+        out_dir = out_dir or TemporaryDirectory().name
         Path(out_dir).absolute().mkdir(exist_ok=True, parents=True)
         impl_methods = ('weighted', 'remapbil', 'remapcon', 'remaplaf',
                         'remapnn')
@@ -716,7 +716,7 @@ class RunDirectory:
         Returns
         -------
 
-        Xarray (multi-file) dataset: xarray.Dataset
+            Xarray (multi-file) dataset: xarray.Dataset
 
         """
         filenames = self._get_files_from_glob_pattern(filenames) or self.files
