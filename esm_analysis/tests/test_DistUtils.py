@@ -24,7 +24,7 @@ def test_loadCluster(mock_slurm, mock_workdir, monkeypatch):
     monkeypatch.setenv('STATUS', 'R')
     Cluster = MPICluster.load(mock_workdir)
     assert Cluster.status == 'R'
-    assert Cluster._batch_system.type == 'slurm'
+    assert Cluster._batch_system._type == 'slurm'
     assert Cluster.job_id == os.environ['JOB_ID']
     assert Cluster.__repr__() == 'Running: time: 0:00 nodes: 2'
     html_txt = '''<p> <span style="color:MediumSeaGreen;">Running</span>:

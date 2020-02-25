@@ -53,37 +53,47 @@ export OMPI_MCA_coll=^ghc
 """
 
 
-class BatchBase:
-    """Base class defining batch commands."""
-
-    type = None
-    submit_cmd = 'qsub'
-    cancel_cmd = 'qdel'
-    check_cmd = 'qstat'
-    run_cmd = 'mpirun'
-
-
-class Slurm(BatchBase):
+class _Slurm:
     """Definitions to work with the slurm workload manager."""
 
-    type = 'slurm'
-    submit_cmd = 'sbatch'
-    cancel_cmd = 'scancel'
-    check_cmd = 'squeue'
-    run_cmd = ('srun -l --cpu_bind=threads '
-               '--distribution=block:cyclic --propagate=STAC')
+    @property
+    def _type(self):
+        return 'slurm'
+
+    @property
+    def submit_cmd(self):
+        """Slurm submit command."""
+        return 'sbatch'
+
+    @property
+    def check_cmd(self):
+        """Slurm check command."""
+        return 'squeue'
+
+    @property
+    def cancel_cmd(self):
+        """Slurm cancel comand."""
+        return 'scancel'
+
+    @property
+    def run_cmd(self):
+        """Slurm run comman."""
+        return ('srun -l --cpu_bind=threads '
+                '--distribution=block:cyclic --propagate=STAC')
+
 
     def cancel(self, job_id):
         """Close down a cluster with a given job_id."""
         if job_id is None:
             return
-        run([self.cancel_cmd, job_id], stdout=PIPE, check=True)
+        run([self.cancel_cmd, job_id], stdout=PIPE, check=True, shell=True)
 
     def check(self, job_id):
         """Check the status of a running cluster."""
         if job_id is None:
             return None, None, None
-        res = run([self.check_cmd, '-j {}'.format(job_id)], check=True,
+        res = run([self.check_cmd, '-j {}'.format(job_id)],
+                  check=True, shell=True,
                   stdout=PIPE).stdout.decode('utf-8').split('\n')
         if len(res) < 2:
             return None, None, None
@@ -157,7 +167,7 @@ class MPICluster:
         _json_data = dict(job_id=self.job_id,
                           workdir=str(self.workdir),
                           job_script=self.job_script,
-                          batch_system=self._batch_system.type,
+                          batch_system=self._batch_system._type,
                           datetime=self.submit_time.isoformat())
         with (self.workdir / 'cluster.json').open('w') as f:
             json.dump(_json_data, f, indent=3, sort_keys=True)
@@ -203,7 +213,7 @@ class MPICluster:
         """
         workdir = Path(workdir)
         _json_data = cls._load(workdir)
-        lookup = dict(slurm=Slurm)
+        lookup = dict(slurm=_Slurm)
         batch_system = lookup[_json_data['batch_system']]()
         script = _json_data['job_script']
         job_id = _json_data['job_id']
@@ -217,7 +227,7 @@ class MPICluster:
     def _submit(self):
 
         res = run([self._batch_system.submit_cmd, str(self.script_path)],
-                  cwd=str(self.workdir), stdout=PIPE, check=True)
+                  cwd=str(self.workdir), stdout=PIPE, check=True, shell=True)
         job_id, _, _cluster = res.stdout.decode('utf-8').strip().partition(';')
         return job_id.split(" ")[-1]
 
@@ -291,7 +301,7 @@ class MPICluster:
         job_extra = job_extra or ''
         workdir = workdir or TemporaryDirectory().name
         workdir = Path(workdir)
-        batch_system = Slurm()
+        batch_system = _Slurm()
         script = slurm_directive.format(
                 account=account,
                 workdir=workdir,
