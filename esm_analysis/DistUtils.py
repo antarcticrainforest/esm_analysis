@@ -31,7 +31,7 @@ _script = """
 rm -fr worker-*
 rm -f scheduler.json
 rm -rf *.lock
-rm -f $(ls LOG*.[oe]|grep -v %j)
+rm -f $(ls LOG*.[oe]|grep -v $SLURM_JOB_ID)
 
 ulimit -c 0
 
@@ -147,7 +147,7 @@ class MPICluster:
                                                nodes=nodes)
 
     @property
-    def schedule_file(self):
+    def scheduler_file(self):
         """Return the schedule file."""
         return Path(self.workdir) / 'scheduler.json'
 

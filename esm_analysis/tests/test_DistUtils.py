@@ -14,7 +14,7 @@ def test_createCluster(mock_slurm, mock_workdir, monkeypatch):
     assert Cluster.status == 'Q'
     monkeypatch.setenv('STATUS', '')
     assert Cluster.status is None
-    assert Cluster.schedule_file.name == 'scheduler.json'
+    assert Cluster.scheduler_file.name == 'scheduler.json'
     assert Cluster.__repr__() == 'No cluster running'
 
 
