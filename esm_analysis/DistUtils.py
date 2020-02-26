@@ -31,7 +31,7 @@ _script = """
 rm -fr worker-*
 rm -f scheduler.json
 rm -rf *.lock
-#rm -f LOG*.o
+rm -f $(ls LOG*.[oe]|grep -v %j)
 
 ulimit -c 0
 
@@ -78,7 +78,7 @@ class _Slurm:
     def run_cmd(self):
         """Slurm run comman."""
         return ('srun -l --cpu_bind=threads '
-                '--distribution=block:cyclic --propagate=STAC')
+                '--distribution=block:cyclic --propagate=STACK')
 
 
     def cancel(self, job_id):
