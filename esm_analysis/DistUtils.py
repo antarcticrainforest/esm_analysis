@@ -18,8 +18,8 @@ slurm_directive = """#!/bin/bash
 #SBATCH --job-name={name}
 #SBATCH --partition={queue}
 #SBATCH -D {workdir}
-#SBATCH --output={workdir}/LOG_dask.%j.o
-#SBATCH --error={workdir}/LOG_dask.%j.o
+#SBATCH --output={workdir}/LOG_mpicluster.%j.o
+#SBATCH --error={workdir}/LOG_mpicluster.%j.e
 #SBATCH --exclusive
 #SBATCH --time={walltime}
 #SBATCH --cpus-per-task={cpus_per_task}
@@ -28,11 +28,10 @@ slurm_directive = """#!/bin/bash
 
 """
 _script = """
-rm -r worker-*
-rm scheduler.json
-rm global.lock
-rm purge.lock
-rm LOG*.o
+rm -fr worker-*
+rm -f scheduler.json
+rm -rf *.lock
+#rm -f LOG*.o
 
 ulimit -c 0
 
