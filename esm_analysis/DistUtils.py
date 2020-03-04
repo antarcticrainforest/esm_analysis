@@ -23,13 +23,13 @@ slurm_directive = """#!/bin/bash
 #SBATCH --exclusive
 #SBATCH --time={walltime}
 #SBATCH --cpus-per-task={cpus_per_task}
-#SBATCH --mem=140G
+#SBATCH --mem={memory}
 #SBATCH -n {nworkers}
-
+{extra}
 """
 _script = """
 rm -fr worker-*
-rm -f scheduler.json
+{rm_scheduler}
 rm -rf *.lock
 rm -f $(ls LOG*.[oe]|grep -v $SLURM_JOB_ID)
 
@@ -47,7 +47,7 @@ export MXM_LOG_LEVEL=ERROR
 # Disable GHC algorithm for collective communication
 export OMPI_MCA_coll=^ghc
 
-{run_cmd} dask-mpi --no-nanny --scheduler-file scheduler.json
+{run_cmd} dask-mpi --no-nanny --{scheduler} --scheduler-file {scheduler_file}
 
 """
 
@@ -79,7 +79,6 @@ class _Slurm:
         """Slurm run comman."""
         return ('srun -l --cpu_bind=threads '
                 '--distribution=block:cyclic --propagate=STACK')
-
 
     def cancel(self, job_id):
         """Close down a cluster with a given job_id."""
@@ -245,7 +244,7 @@ class MPICluster:
             self._write_json()
 
     @classmethod
-    def slurm(cls, account, queue, *,
+    def slurm(cls, account, queue, *, slurm_extra=[''], memory='140G',
               workdir=None, walltime='01:00:00', cpus_per_task=48,
               name='dask_job', nworkers=1, job_extra=None):
         """
@@ -284,11 +283,17 @@ class MPICluster:
         cpus_per_task: int, optional (default: 48)
             number of cpus per node
 
+        memory: str, optional (default: 140G)
+            allocated memory per node
+
         nworkers: int, optional (default: 1)
             number of nodes used in the job
 
         job_extra: str, optional (default: None)
             additional commands that should be executed in the run sript
+
+        slurm_extra: list, optional (default: None)
+            additional slurm directives
 
         Returns
         -------
@@ -300,6 +305,9 @@ class MPICluster:
         workdir = workdir or TemporaryDirectory().name
         workdir = Path(workdir)
         batch_system = _Slurm()
+        slurm_extra = ['#SBATCH {}'.format(extr)
+                       for extr in slurm_extra if slurm_extra]
+        scheduler_file = workdir / 'scheduler.json'
         script = slurm_directive.format(
                 account=account,
                 workdir=workdir,
@@ -307,7 +315,14 @@ class MPICluster:
                 cpus_per_task=cpus_per_task,
                 nworkers=nworkers+1,
                 walltime=walltime,
-                queue=queue) + _script.format(run_cmd=batch_system.run_cmd,
-                                              job_extra=job_extra)
+                memory=memory,
+                extra='\n'.join(slurm_extra),
+                queue=queue) +\
+            _script.format(run_cmd=batch_system.run_cmd,
+                           job_extra=job_extra,
+                           scheduler='scheduler',
+                           scheduler_file=scheduler_file,
+                           rm_scheduler='rm -f {}'.format(scheduler_file)
+                           )
 
         return cls(script, workdir, batch_system=batch_system)
