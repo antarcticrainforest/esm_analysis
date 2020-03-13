@@ -427,10 +427,10 @@ class RunDirectory:
         options = options or '-f nc4'
         if isinstance(infile, (str, Path)):
             infile = Path(infile)
-            out_file = out_dir / infile.with_suffix('.nc').name
+            out_file = str(out_dir / infile.with_suffix('.nc').name)
         else:
             out_file = None
-        with NamedTemporaryFile(dir=str(out_dir), suffix='.nc') as tf_in:
+        with NamedTemporaryFile(dir=out_dir, suffix='.nc') as tf_in:
 
             if method == 'weighted':
                 cdo_str = str(griddes)+','+str(weightfile)
@@ -501,6 +501,9 @@ class RunDirectory:
             worker scheduler client that submits the jobs. If None is given
             a new client is started
 
+        progress: bool (default: True)
+            display tqdm progress bar
+
         **kwargs: optional
             additional keyword arguments controlling the progress bar parameter
 
@@ -516,7 +519,9 @@ class RunDirectory:
         else:
             tasks = [(client.scatter(entry), *args) for entry in collection]
         futures = [client.submit(mappable, *task) for task in tasks]
-        progress_bar(futures, **kwargs)
+        progress = kwargs.pop('progress', True)
+        if progress is True:
+            progress_bar(futures, **kwargs)
         output = client.gather(futures)
         if len(output) == 1:  # Possibly only one job was submitted
             return output[0]

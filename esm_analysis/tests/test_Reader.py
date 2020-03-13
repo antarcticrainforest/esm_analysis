@@ -136,7 +136,8 @@ def test_apply_function(mock_run, mock_client):
     """Test the parallel apply function."""
     max_vals = mock_run.apply_function(lambda d, v: d[v].min().values,
                                        (mock_run.dataset, mock_run.dataset),
-                                       args=('t_2m', ), client=mock_client)
+                                       args=('t_2m', ), client=mock_client,
+                                       progress=False)
     assert len(max_vals) == 2
     assert np.allclose(max_vals, 0) is True
     with pytest.raises(KeyError):
