@@ -14,12 +14,7 @@ import threading
 
 from .setup_plot import (BuildWidget, _check, _read_data)
 
-CBAR_ARGS = {
-            'cbar_mode': 'single',
-            'cbar_size': '2%',
-            'cbar_pad': '2%',
-            'cbar_location': 'bottom',
-            }
+
 
 __all__ = ('ProfilePlotter',)
 
@@ -65,12 +60,14 @@ class ProfilePlotter(BuildWidget):
         vmin = _check(self.datasets, vmin, accpet_none=False)
         vmax = _check(self.datasets, vmax, accpet_none=False)
         self.dims = dims
-        self.cbar_args = {key: value for (key, value) in CBAR_ARGS.items()}
+        self.cbar_args = cbar_args or {}
         try:
-            for key, value in cbar_args.items():
-                self.cbar_args[key] = value
+            self.cbar_args.setdefault('cbar_mode', 'each')
+            self.cbar_args.setdefault('cbar_size', '2%')
+            self.cbar_args.setdefault('cbar_pad', '2%')
+            self.cbar_args.setdefault('cbar_location', 'bottom')
         except AttributeError:
-            pass
+            raise ValueError('cbar_args must be of type dictionary')
         self.step_variables = []
         if self.cbar_args['cbar_mode'].lower() != 'each':
             _link = True
@@ -85,7 +82,6 @@ class ProfilePlotter(BuildWidget):
                 self.step_variables.append(None)
 
         self.plots = [None for i in range(len(self.varnames))]
-
         super().__init__(figsize=figsize,
                          vmax=vmax,
                          vmin=vmin,
@@ -247,8 +243,10 @@ class ProfilePlotter(BuildWidget):
             else:  # We do have an image, that needs updating
                 self.plots[i].set_data(x, y)
                 self.set_plot_range(i, x, y)
+
             if self.invert_yaxis:
-                self.ax[i].invert_yaxis()
+                if i == 0:
+                    self.ax[i].invert_yaxis()
 
     def set_plot_range(self, num, x, y):
         """Set the min/max display range."""
@@ -327,7 +325,7 @@ class ProfilePlotter(BuildWidget):
             if self.invert_yaxis:
                 ax.axis.axes.invert_yaxis()
             ax.axis.axes.set_xticks([])
-        self.invert_yaxis = False
+            self.invert_yaxis = False
 
     @classmethod
     def profile_2d(cls, datasets, varnames, figsize=None, apply_func=None,
