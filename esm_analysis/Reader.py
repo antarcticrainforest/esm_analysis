@@ -427,7 +427,7 @@ class RunDirectory:
         options = options or '-f nc4'
         if isinstance(infile, (str, Path)):
             infile = Path(infile)
-            out_file = str(out_dir / infile.with_suffix('.nc').name)
+            out_file = str(Path(out_dir) / infile.with_suffix('.nc').name)
         else:
             out_file = None
         with NamedTemporaryFile(dir=out_dir, suffix='.nc') as tf_in:
