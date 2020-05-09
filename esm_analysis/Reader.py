@@ -51,11 +51,15 @@ def progress_bar(*futures, **kwargs):
         whether or not to display a progress bar optimized for
         jupyter notebooks
 
-    bar_title: str, optional (default: Progress)
+    label: str, optional (default: Progress)
         Title of the progress bar
 
     kwargs:
         Additional keyword arguments passed to the tqdm object
+
+    Returns
+    -------
+    collection: futures
 
     """
     notebook = kwargs.pop('notebook', None)
@@ -71,7 +75,7 @@ def progress_bar(*futures, **kwargs):
 
     progress = tqdm.tqdm_notebook if notebook else tqdm.tqdm
     _ = list(progress(as_completed(futures), **kwargs))
-
+    return futures
 
 class _BaseVariables(dict):
 
