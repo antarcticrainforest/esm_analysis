@@ -34,6 +34,7 @@ Contents
 .. toctree::
     :caption: Examples:
 
+    ProcessDyamondData.ipynb
     demo
 
 .. toctree::
