@@ -31,6 +31,7 @@ setup(name="esm_analysis",
       license="BSD-3-Clause",
       packages=find_packages(),
       install_requires=[
+          'cartopy',
           'cdo',
           'cloudpickle',
           'dask',
