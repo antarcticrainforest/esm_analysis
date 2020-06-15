@@ -3,7 +3,7 @@ Basic Usage
 ===========
 
 This notebook should demonstrate how I try to access and process data
-more easily. As of now the ``mpi_data`` library is just a concept and
+more easily. As of now the ``esm_analysis`` library is just a concept and
 far from being ready to be deployed. As an example I will try to explain
 in functionality based on **CMORPH** satellite data:
 
