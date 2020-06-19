@@ -12,7 +12,6 @@ def test_import():
     from subprocess import run, PIPE
     from cartopy import crs as ccrs # Cartography library
     import dask # Distributed data libary
-    from dask_jobqueue import SLURMCluster # Setting up distributed memories via slurm
     from distributed import Client, progress, wait # Libaray to orchestrate distributed resources
     from hurry.filesize import size as filesize # Get human readable file sizes
     from matplotlib import pyplot as plt # Standard Plotting library
@@ -22,6 +21,5 @@ def test_import():
     import pandas as pd # Libary to work with labeled data frames and time series
     import seaborn as sns # Makes plots more beautiful
     import xarray as xr # Libary to work with labeled n-dimensional data and dask
-    import stratify
 
 
